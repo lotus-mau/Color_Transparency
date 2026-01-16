@@ -1,0 +1,154 @@
+      program pion_kin
+      implicit none
+
+      real*8 Ebeam,W,xQ2,theta_piq,epcm,dsdt,rate,time,xA
+      real*8 Eprime,qabs,qpar,qperp,omega,theta_e,theta_pi,Ppi,theta_pq
+      real*8 mp,mn,mtar,mrec,mpi,x_bj,alpha,xK_eq,pi,pisq,ppcm,pgcm
+      real*8 a,b,c,QA,QB,QC,radical,Epi,Kpi,t,sigma,sigma_cm,xerr
+      real*8 epsilon,epi_alt,E_p,P_p,theta_p,xLambda,scale,physa
+      real*8 t_min,t_max,degtorad,radtodeg,th_emin,th_emax,dth_e
+      real*8 th_hmin,th_hmax,th_diff,Pef_min,Pef_max,dPef,ppi_max
+      real*8 Phf_min,Phf_max,t_min_cutoff,W_min,th_e,th_sum,ppi_min
+      real*8 meanQ2,xQ2min,xQ2max,dxQ2,W_max,zz
+      integer piplus_flag,num_pi,num_th,i,j,num_pq,ks
+
+      parameter(mp = 0.93827231)
+      parameter(mn = 0.93956563)
+      parameter(mpi = 0.13956995)
+      parameter(alpha = 1.0/137.0)
+      parameter(pi = 3.141592654)
+      parameter(pisq = 9.8696044)
+      parameter(scale = 2000000000.0)
+      DATA degtorad/.0174533/, radtodeg/57.2958/
+      DATA th_emin/12.0/	!min. electron angle
+      DATA th_emax/90./ 	!max. electron angle
+c      DATA th_emin/43.49/	!min. electron angle
+c      DATA th_emax/43.49/ 	!max. electron angle
+      DATA dth_e/0.5/
+c Preliminary "10-Gev" constraints.
+      DATA th_hmin/5.5/	!min. hadron angle
+      DATA th_hmax/25./	!max. hadron angle
+
+      DATA th_diff/16./	!min. separation angle between spectrometers
+c Momentum ranges
+c Electron arm is the SOS
+c hadron arm is the HMS
+c      DATA Pef_min/1.268/, Pef_max/1.268/, dPef/0.25/	!electrons
+      DATA Pef_min/0.250/, Pef_max/7.6/, dPef/0.01/	!electrons
+      DATA Phf_min/0.250/, Phf_max/11.0/	!hadrons
+
+
+c*********************************
+c Define limits on epsilon and -t
+c*********************************
+c	DATA t_min_cutoff/.30/		!corresponds to roughly -15 m_pi**2
+      DATA t_min_cutoff/2.0/		!corresponds to roughly -100 m_pi**2
+      DATA W_min/1.9/
+      DATA W_max/4.0/
+c
+
+
+      open(unit=10,file='pion_ep.out',status='unknown')
+      write(6,5)
+ 5    format(1x,'Qsq ','Ebeam  ',' Eprime  ','  Ppi  ',' theta_pi ',
+     >' theta_e ','  W   ',' t_min  ',' kpi ',' epsilon ',
+     >'t    ','x    ')  
+c      write(6,*)'What is the beam energy?'
+c      read(5,*)Ebeam 
+c      write(6,*)'What is the Q^2?'
+c      read(5,*)meanQ2 
+      do i = 2,5
+       Ebeam = 4.4*i
+       do j = 1,5
+        meanQ2=9.5+(j-1)*1.5 
+        xQ2min=meanQ2!-0.05
+        xQ2max=meanQ2!+0.05
+        dxQ2=0.025
+        do 78 xQ2 = xQ2min,xQ2max !,dxQ2
+         write(10,5)
+         do 80 Eprime = Pef_min, Pef_max, dPef
+          theta_e = 2.*asin(sqrt(xQ2/4./Eprime/Ebeam))
+          th_e=theta_e*radtodeg
+c        write(6,*)'theta_e',theta_e
+	  if (th_e.lt.th_emin)goto 80
+	  if (th_e.gt.th_emax)goto 80        
+          do k=1,1
+           theta_pq = 0.0 + (k-1)*3.0        
+           piplus_flag=1 
+           if(piplus_flag.eq.1) then
+            mtar = mp
+            mrec = mn
+           else
+            mtar = mn
+            mrec = mp
+           endif
+           omega = Ebeam - Eprime
+           W = sqrt(2.*omega*mtar +mtar**2. - xQ2) 
+           x_bj = xQ2/2./mn/omega
+
+!         if (W.gt.2.5)then
+!          if (xQ2.gt.2.499)then
+           qpar = Ebeam - Eprime*cos(theta_e)
+           qperp = -Eprime*sin(theta_e)
+           qabs = sqrt(qpar**2+qperp**2)
+           theta_pq =theta_pq*3.1415/180.
+           if(k.eq.1)then
+            theta_pi = (acos(qpar/qabs) + theta_pq)*radtodeg
+            th_sum = th_e + theta_pi
+           endif
+           a = -1.*qabs*cos(theta_pq)
+           b = qabs**2
+           c = Ebeam - Eprime + mtar - 0.00222
+
+           QA = 4.*(a**2 - c**2)
+           QB = 4.*c*(c**2-b+mpi**2-mrec**2)
+           QC = -4.*a**2*mpi**2 - (c**2-b+mpi**2-mrec**2)**2
+
+           radical = QB**2 - 4.*QA*QC
+           if(radical.lt.0.) then
+            goto 80
+           else
+            Epi = (-QB-sqrt(radical))/2./QA
+            epi_alt = (-QB+sqrt(radical))/2./QA
+           endif
+            E_p= c -Epi
+            P_p= sqrt(E_p**2 - mp**2)   
+            theta_p =acos(qabs - Ppi*cos(theta_pq))    
+            Ppi = sqrt(Epi**2-mpi**2)
+            kpi = sqrt(Ppi**2 + qabs**2 -2.*Ppi*qabs*cos(theta_pq) )
+            t = -xQ2 + mpi**2 - 2.*(Ebeam-Eprime)*Epi + 
+     >      2.*qabs*Ppi*cos(theta_pq)
+
+            if(k.eq.1) then
+              ppi_max = Ppi
+              t_min = t
+            endif
+            if(k.eq.2) then 
+              ppi_min = Ppi
+              t_max = t
+            endif
+            zz =  Epi/omega
+            epsilon=1./(1.+2.*(xQ2+(Ebeam-Eprime)**2)
+     >      /xQ2*(tan(theta_e/2.))**2)
+          enddo
+	  if(ppi_max.gt.Phf_max)goto 80	!hadron momentum too large for spectrometer
+	  if (theta_pi.lt.th_hmin)goto 80
+	  if (theta_pi.gt.th_hmax)goto 80
+	  if (th_sum.lt.th_diff)goto 80
+	  if (abs(t_min).ge.t_min_cutoff)goto 80
+	  if (W.lt.W_min)goto 80
+         if (W.gt.W_max) goto 80
+c        if (epsilon.lt.0.6) goto 80
+          write(6,10)xQ2,Ebeam,Eprime,ppi_max,theta_pi,th_e,W,t_min,
+     >             kpi,epsilon,t,x_bj
+          write(10,10)Ebeam,xQ2,Eprime,ppi_max,theta_pi,th_e,W,t_min,
+     >              kpi,epsilon,t,x_bj
+ 80      enddo
+ 78     enddo
+       enddo
+      enddo
+ 10   format(1x,12(F6.3,2x))
+      close(10)
+      end
+
+
