@@ -31,8 +31,6 @@ plt.hist(mmass, bins=100, weights=weight*normfac/ngen)
 plt.xlabel("Missing mass [GeV/c]")
 plt.ylabel("Counts/mC")
 plt.title("1mC of beam on carbon target")
-# Show the plot
-plt.show()
 
 # Testing different plots.
 
@@ -77,3 +75,5 @@ plt.figure()
 plt.hist(pfermi, bins=100, weights=weight*normfac/ngen)
 plt.xlabel(r"$p_f$ [GeV/c]"); plt.ylabel(r"Counts/mC")
 plt.title("1mC of beam on carbon target")
+
+plt.show()
