@@ -34,14 +34,21 @@ def plot_kinematics(df):
     Px1=df.eval(f"p_pi*sin(th_pi)")
     Pz2=df.eval(f"E_ep*cos(th_ep)")
     Px2=df.eval(f"-E_ep*sin(th_ep)")
+
+    # calculating q vector components
+    Qz=df.eval("q*cos(th_pi)")
+    Qx=df.eval("q*sin(th_pi)")
     
     # now plot these values.  The length of the lines represent the magnitude of the central moemntum in the detector.   
     for i in range(len(df)):
+        # draw virtual photon q-vector
+        plt.plot([0, Qx[i]], [0, Qz[i]], ls='--', lw=2, color='red', label=r'$\vec{q}$' if i == 0 else None)
+        
         # We draw the pair of lines as a V, starting from the SHMS, then going to the origin, then to the HMS
         plt.plot([Px1[i],0,Px2[i]], [Pz1[i],0,Pz2[i]], label=f'$Q^2$={df.Q2[i]:.2} GeV$^2/c^2$', lw=2)
     
     # now show the beamline 
-    plt.plot([0,0], [-df.Ee[0], 0], ls='-', color='k',lw=2)
+    plt.plot([0,0], [-df.Ee[0], 0], ls='-', color='k', lw=2)
 
     # now show the ranges of values that can be set for the SHMS and HMS central momentum vectors.
     # these will be shown as filled polygons
@@ -72,6 +79,7 @@ def plot_kinematics(df):
     
     # finally, create a legend, showing the labels for each of the kinematics
     plt.legend()
+    plt.show()
 
 # now create a dataframe containing the kinematics of the PionCT experiment
 df=pd.DataFrame()
@@ -109,6 +117,10 @@ df['th_pi']=df.eval('arctan2(E_ep*sin(th_ep), Ee-E_ep*cos(th_ep))')
 df['q']=df.eval("sqrt((E_ep*sin(th_ep))**2+(Ee-E_ep*cos(th_ep))**2)")
 # and its energy
 df['nu']=df.eval('Ee-E_ep')
+
+# virtual photon 3-vector components
+df['qx'] = df.eval("q*sin(th_pi)")
+df['qz'] = df.eval("q*cos(th_pi)")
 
 # calculate the momentum of the pion such that the four momentum squared of the beam electron minus the scattered electron and the pion is equal to t
 df['p_pi']=df.eval(f"1/(2*Q2)*(-q*{m_pi}**2+q*Q2+q*t+nu*sqrt({m_pi}**4+(Q2+t)**2-2*{m_pi}**2*(-Q2+t)))")
