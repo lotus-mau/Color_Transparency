@@ -288,4 +288,4 @@ def pionCTkinematics(Q2, Ebeam, t_target):
 # Example usage:
 if __name__ == "__main__":
     # example numbers similar to your macro
-    pionCTkinematics(Q2=4.69, Ebeam=5.767, t_target=-0.527)
+    pionCTkinematics(Q2=5.0, Ebeam=11.0, t_target=-0.527)
