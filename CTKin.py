@@ -261,9 +261,9 @@ plot_format(r'$\theta_e$ (deg)', r'$Q^2$ (GeV/c)$^2$', r'$E_s$ (GeV)',
             fr'($Q^2$, $\theta_e$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
 plt.legend(title=label_xb_t)
 
-plot_scatter(theta_pi_results, q2_results, Eprime_results, xb_fixed & theta_mask)
+plot_scatter(theta_pi_results, q2_results, Eprime_results, xb_fixed & theta_mask & t_fixed)
 plot_format(r'$\theta_\pi$ (deg)', r'$Q^2$ (GeV/c)$^2$', r'$E_s$ (GeV)', 
             fr'($Q^2$, $\theta_\pi$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
-plt.legend(title=label_xb)
+plt.legend(title=label_xb_t)
 
 plt.show()

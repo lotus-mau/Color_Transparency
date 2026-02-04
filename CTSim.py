@@ -1,5 +1,7 @@
 import uproot
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
+import numpy as np
 
 plt.close('all')
 
@@ -67,39 +69,45 @@ labels = {
 def pltformat(xlabel, ylabel, title):
     plt.xlabel(xlabel); plt.ylabel(ylabel); plt.title(title)
 
-#storing figures
-figs = []
+#storing histograms
+h_figs = []
 
-plot_vars = ['q', 'nu', 'Q2', 'W', 'Em', 'thetapq', 'mmnuc', 'phad', 't']
+plot1D = ['q', 'nu', 'Q2', 
+             'W', 'epsilon', 'Em', 'thetapq', 
+             'mmnuc', 'phad', 't']
 
 # Plotting each graph
-def pltallhist(binsize, weights, ylabel, title):
-    for key in plot_vars:
+def pltallhist(vars, binsize, weights, 
+               ylabel, title):
+    for key in vars:
         
-        fig = plt.figure()
+        plt.figure()
         
         # Current is in mA (mC/s)
-        plt.hist(kin[key], bins=binsize, weights=weights)
+        h = plt.hist(kin[key], bins=binsize, weights=weights)
         pltformat(labels.get(key, key), ylabel, title)
 
-        figs.append(fig)
+        h_figs.append(h)
 
 # constants
 q_e = 1.602e-19 * 1000  # C -> mC           elementary charge
 N_A = 6.022e23          # 1/mol             Avogadro's number
 
 # specs
-current = 0.04 *1000    # A -> mA = mC/s    beam current
+current = 40 / 1000     # A -> muA = mC/s   beam current
 length = 0.294089       # cm                beam length
 density = 0.226700e01   # g/cm^3            beam density  
 A = 12                  #                   nucleon number  
 
+weight1 = np.ones_like(weight)
 
 # Plotting all Counts/mC graphs
-pltallhist(100, weight * normfac/ngen, 'Counts/mC', '1mC of Current on Carbon target')
+#pltallhist(plot1D, 100, weight * normfac/ngen, 
+#           'Counts/mC', '1mC of Current on Carbon target')
 
 # Plotting all Counts/s graphs 
-pltallhist(100, weight * normfac/ngen * current, 'Counts/s', 'Count Rates on Carbon target')
+#pltallhist(plot1D, 100, weight * normfac / ngen * current, 
+#           'Counts/s', 'Count Rates on Carbon target')
 
 # Calculating luminosity:
 def calclum(current, density, length, A):
@@ -110,9 +118,27 @@ def calclum(current, density, length, A):
     return L_B * L_T
 
 luminosity = calclum(current, density, length, A)
-print(luminosity)
 
-# Plotting all Counts/s graphs with luminosity weight
-pltallhist(100, weight * luminosity, 'Counts/s', 'Count Rates on Carbon target')
+# Plotting 2D Histograms
+
+plot2D = [('Q2','W'),
+#         ('',''),
+#         ('',''),
+          ('phad','thetapq')]
+
+def pltall2D(vars, binsize, weights, title):
+
+    for ykey, xkey in vars:
+
+        plt.figure()
+        h = plt.hist2d(np.asarray(kin[xkey]), np.asarray(kin[ykey]), 
+                       bins=binsize, weights=np.asarray(weights),
+                       norm=LogNorm())
+        plt.colorbar(label=r'Counts/s')
+        pltformat(labels.get(xkey, xkey), labels.get(ykey, ykey), title)
+
+pltall2D(plot2D, 100, weight * normfac / ngen * current, 
+         'Count Rates on Carbon target, comparison')
+
 
 plt.show()
