@@ -12,15 +12,25 @@ file = uproot.open("pion_q5_og.root")
 tree = file["h10"]
 
 # Read the branch data
-# HMS variables you can read: hsdelta, hsyptar, hsxptar, hsytar, hsxfp, hsxpfp, hsyfp, hsypfp
-# SHMS variables you can read: ssdelta, ssyptar, ssxptar, ssytar, ssxfp, ssxpfp, ssyfp, ssypfp
+
+# HMS variables you can read: 
+# hsdelta, hsyptar, hsxptar, hsytar, hsxfp, hsxpfp, hsyfp, hsypfp
+
+# SHMS variables you can read: 
+# ssdelta, ssyptar, ssxptar, ssytar, ssxfp, ssxpfp, ssyfp, ssypfp
+
 # Other variables for cross section: Weight
-# Kinematic variables: q, nu, Q2, W, epsilon*, Em, Pm, thetapq*, phipq*, mmnuc, phad, t, pmpar, pmper, pmoop, radphot, pfermi
+
+# Kinematic variables: 
+# q, nu, Q2, W, epsilon*, Em, Pm, thetapq*, phipq*, 
+# mmnuc, phad, t, pmpar, pmper, pmoop, radphot, pfermi
+
 # Note that the weight will give you units of counts/mC
 
 # you can plot any of these variables by doing something like the following:
 
-weight = tree["Weight"].array()     # Monte Carlo event weight (cross section x acceptance)
+# Monte Carlo event weight (cross section x acceptance)
+weight = tree["Weight"].array()     
 
 # Generator information, from .hist file
 ngen = 10000        # number of generated events
@@ -73,8 +83,9 @@ def pltformat(xlabel, ylabel, title):
 h_figs = []
 
 plot1D = ['q', 'nu', 'Q2', 
-             'W', 'epsilon', 'Em', 'thetapq', 
-             'mmnuc', 'phad', 't']
+          'W', 'epsilon', 'Em', 
+          'thetapq', 'mmnuc', 'phad', 
+          't']
 
 # Plotting each graph
 def pltallhist(vars, binsize, weights, 
@@ -121,9 +132,9 @@ luminosity = calclum(current, density, length, A)
 
 # Plotting 2D Histograms
 
-plot2D = [('Q2','W'),
-#         ('',''),
-#         ('',''),
+plot2D = [('Q2','thetapq'),
+          ('Q2','t'),
+          ('Q2','epsilon'),
           ('phad','thetapq')]
 
 def pltall2D(vars, binsize, weights, title):
@@ -132,7 +143,7 @@ def pltall2D(vars, binsize, weights, title):
 
         plt.figure()
         h = plt.hist2d(np.asarray(kin[xkey]), np.asarray(kin[ykey]), 
-                       bins=binsize, weights=np.asarray(weights),
+                       bins=binsize, weights=np.asarray(weights), 
                        norm=LogNorm())
         plt.colorbar(label=r'Counts/s')
         pltformat(labels.get(xkey, xkey), labels.get(ykey, ykey), title)

@@ -222,7 +222,16 @@ label_xb = (r'$x_b = 0.5$')
 label_xb_t = (r'$x_b = 0.5$' '\n' 
               r'$t = -0.4$ (GeV/c)$^2$')
 
+def Label(label):
+    plt.text(0.98, 0.98, label,
+             transform=plt.gca().transAxes,
+             va='top', ha='left',
+             bbox=dict(facecolor='white',
+                       alpha=0.8,edgecolor='black'))
+
+
 # plot_contour(xb_results, q2_results, theta_e_results, xb_mask)
+
 plot_scatter(xb_results, q2_results, theta_e_results, xb_mask & theta_mask)
 plot_format(r'$x_b$', r'$Q^2$ (GeV/c)$^2$', r'$\theta_e$ (deg)', 
             fr'($Q^2$, $x_b$, $\theta_e$) Phase Space for $E_b=$ {Ebeam_name} GeV')
@@ -234,36 +243,37 @@ plot_format(r'$\theta_\pi$ (deg)', r'$p_\pi$ (GeV/c)', r'$E_s$ (GeV)',
 plot_scatter(theta_e_results, q2_results, Eprime_results, xb_fixed & theta_mask)
 plot_format(r'$\theta_e$ (deg)', r'$Q^2$ (GeV/c)$^2$', r'$E_s$ (GeV)', 
             fr'($Q^2$, $\theta_e$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
-plt.legend(title=label_xb)
+Label(label_xb)
 
 plot_scatter(t_results, p_pi_results, Eprime_results, xb_fixed & theta_mask)
 plot_format(r'$-t$ (GeV/c)$^2$', r'$p_\pi$ (GeV/c)', r'$E_s$ (GeV)', 
             fr'($p_\pi$, $-t$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
-plt.legend(title=label_xb)
+Label(label_xb)
 
 plot_scatter(t_results, theta_pi_results, Eprime_results, xb_fixed & theta_mask)
 plot_format(r'$-t$ (GeV/c)$^2$', r'$\theta_\pi$ (deg)', r'$E_s$ (GeV)', 
             fr'($\theta_\pi$, $-t$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
-plt.legend(title=label_xb)
+Label(label_xb)
 
 plot_scatter(theta_pi_results, k_pi_results, Eprime_results, xb_fixed & theta_mask)
 plot_format(r'$\theta_\pi$ (deg)', r'$k_\pi$ (GeV/c)', r'$E_s$ (GeV)',
             fr'($k_\pi$, $\theta_\pi$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
-plt.legend(title=label_xb)
+Label(label_xb)
 
 plot_scatter(theta_pi_results, p_pi_results, Eprime_results, xb_fixed & theta_mask & t_fixed)
 plot_format(r'$\theta_\pi$ (deg)', r'$p_\pi$ (GeV/c)', r'$E_s$ (GeV)', 
             fr'($p_\pi$, $\theta_\pi$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
-plt.legend(title=label_xb_t)
+Label(label_xb_t)
 
 plot_scatter(theta_e_results, q2_results, Eprime_results, xb_fixed & theta_mask & t_fixed)
 plot_format(r'$\theta_e$ (deg)', r'$Q^2$ (GeV/c)$^2$', r'$E_s$ (GeV)', 
             fr'($Q^2$, $\theta_e$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
-plt.legend(title=label_xb_t)
+Label(label_xb_t)
 
 plot_scatter(theta_pi_results, q2_results, Eprime_results, xb_fixed & theta_mask & t_fixed)
 plot_format(r'$\theta_\pi$ (deg)', r'$Q^2$ (GeV/c)$^2$', r'$E_s$ (GeV)', 
             fr'($Q^2$, $\theta_\pi$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
-plt.legend(title=label_xb_t)
+Label(label_xb_t)
+
 
 plt.show()
