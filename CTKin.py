@@ -14,16 +14,14 @@ plt.close('all')
 
 # CONSTANTS
 
-m_p  = 0.9382720813   # proton mass
-m_n = 0.93956563      # neutron mass
-m_pi = 0.139570611    # charged pion mass
+m_p  = 0.9382720813     # proton mass
+m_n = 0.93956563        # neutron mass
+m_pi = 0.139570611      # charged pion mass
 
 # INPUTS
 
-# E_beam = np.arange(10.5, 11.1, 0.1)
-E_beam = np.array([12.0])
-Q2 = np.arange(8.0, 9.0, 0.01)
-E_prime = np.arange(0.3, E_beam[-1], 0.01)
+A = 12; Z = 6           # nucleon and atomic number : Carbon-12
+m_A = Z*m_p + (A-Z)*m_n # target mass in GeV/c^2
 
 # TEST INPUT
 
@@ -33,6 +31,11 @@ E_prime = np.arange(0.3, E_beam[-1], 0.01)
 # E_prime = np.arange(0.5, E_beam[-1], 0.01)
 
 # VARIABLE INPUT
+
+# E_beam = np.arange(10.5, 11.1, 0.1)
+E_beam = np.array([11.0])
+Q2 = np.arange(4.0, 5.0, 0.01)
+E_prime = np.arange(0.3, E_beam[-1], 0.01)
 
 # DEFINITIONS
 
@@ -48,11 +51,12 @@ def Theta_e(q2, E_beam, Eep):
     
     return 2.0 * np.arcsin(np.sqrt(sin2half))
 
-def Calc_t(Ebeam, Eprime, q2, theta_e, forward=True):
+def Calc_kin(Ebeam, Eprime, q2, theta_e, forward=True):
     """
     Compute the hadronic momentum transfer t for e + p -> e' + π+ + n
     using two-body exclusive kinematics.
     forward=True gives t_min (pion emitted along q-vector).
+
     """
     # Energy and momentum transfer
     omega = Ebeam - Eprime
@@ -60,7 +64,9 @@ def Calc_t(Ebeam, Eprime, q2, theta_e, forward=True):
     
     q_par = Ebeam - Eprime*np.cos(theta_e)
     q_perp = -1*Eprime*np.sin(theta_e)
-    q_abs_comp = np.sqrt(q_par**2 + q_perp**2) # 
+    q_abs_comp = np.sqrt(q_par**2 + q_perp**2)
+
+    q_vec = np.array([q_perp, 0, q_par])
     
     # Invariant mass of the hadronic system
     W2 = m_p**2 + 2*m_p*omega - q2
@@ -81,16 +87,22 @@ def Calc_t(Ebeam, Eprime, q2, theta_e, forward=True):
     Epi_lab = gamma * (Epi_star + beta * ppi_star * cos_theta_pq)
     ppi_lab = np.sqrt(Epi_lab**2 - m_pi**2)
     
-    #Pion angle
+    #Pion angle and vector
     cos_q = q_par / q_abs_comp if q_abs_comp != 0 else 1.0
     theta_pi = (np.arccos(cos_q) + np.arccos(cos_theta_pq)) * 180 / np.pi
+    p_pi_vec = np.array([ppi_lab * np.sin(np.deg2rad(theta_pi)), 0, ppi_lab * np.cos(np.deg2rad(theta_pi))])
     
     k_pi = np.sqrt(max(0.0, ppi_lab**2 + q_abs_comp**2 - 2.0 * ppi_lab * q_abs * cos_theta_pq))
+
+    # Missing energy, momentum, and mass calculations
+    E_x = Ebeam - Eprime + m_p - Epi_lab
+    P_x_vec = q_vec - p_pi_vec; P_x2 = np.dot(P_x_vec, P_x_vec); P_x = np.sqrt(P_x2)
+    M_x2 = E_x**2 - P_x2; M_x = np.sqrt(max(0.0, M_x2))
     
     # Compute t (minimal value)
     t = -q2 + m_pi**2 - 2 * (omega * Epi_lab - q_abs * ppi_lab * cos_theta_pq)
     
-    return t, ppi_lab, theta_pi, k_pi
+    return t, ppi_lab, theta_pi, k_pi, W, E_x, P_x, M_x
 
 def Q_squared(Ee, Eep, theta): # theta is in radians
     
@@ -111,6 +123,10 @@ p_pi_results = []
 theta_pi_results = []
 k_pi_results = []
 t_results = []
+W_results = []
+Ex_results = []
+Px_results = []
+Mx_results = []
 
 # INPUT 
 
@@ -135,29 +151,34 @@ for Ebeam in E_beam:
                 
                 theta_e *= 180/np.pi # radians conversion
                 
-                t, p_pi, theta_pi, k_pi = Calc_t(Ebeam, Eprime, Q2_val, theta_e, forward=True)
-                
+                t, p_pi, theta_pi, k_pi, W, E_x, P_x, M_x = Calc_kin(Ebeam, Eprime, Q2_val, theta_e, forward=True)
+
                 t *= -1
                 
                 if np.isnan(t): continue
                 
                 if np.abs(t) > 1.0: continue
                 
-                omega = Ebeam - Eprime
-                W = np.sqrt(m_p**2 + 2*m_p*omega - Q2_val)
-                
+                #results
                 Ebeam_results.append(Ebeam); Eprime_results.append(Eprime)
-                q2_results.append(q2_val); xb_results.append(xb_val); theta_e_results.append(theta_e)
-                theta_pi_results.append(theta_pi); t_results.append(t); p_pi_results.append(p_pi)
-                k_pi_results.append(k_pi)
-                results.append([Q2_val, t, Ebeam, theta_e, Eprime, theta_pi, p_pi, k_pi, W, xb_val])
+                q2_results.append(q2_val); xb_results.append(xb_val)
+                theta_e_results.append(theta_e); theta_pi_results.append(theta_pi)
+                t_results.append(t); W_results.append(W)
+                p_pi_results.append(p_pi); k_pi_results.append(k_pi)
+                Ex_results.append(E_x); Px_results.append(P_x)
+                Mx_results.append(M_x)
+
+                results.append([Q2_val, xb_val, t, Ebeam, theta_e, Eprime, theta_pi, p_pi, k_pi, W, E_x, P_x, M_x])
                 
             except Exception:
                 continue
 
-df = pd.DataFrame(results, columns=["Q2", "t", "Ebeam", "Theta_e", "Eprime", "Theta_p", "p_pi", "k_pi", "W", "Bjorken X"])
+df = pd.DataFrame(results, columns=["Q2", "Bjorken X", "t", "Ebeam", "Theta_e", "Eprime", "Theta_p", "p_pi", "k_pi", "W", "Em", "Pm", "Mm"])
 df.to_csv("t_scan_results.csv", index=False, float_format="%.6f")
 print("Saved results to t_scan_results.csv with", len(df), "rows.")
+
+Ebeam_results = np.array(Ebeam_results)
+Eprime_results = np.array(Eprime_results)
 
 q2_results = np.array(q2_results)
 xb_results = np.array(xb_results)
@@ -166,9 +187,10 @@ p_pi_results = np.array(p_pi_results)
 theta_pi_results = np.array(theta_pi_results)
 k_pi_results = np.array(k_pi_results)
 t_results = np.array(t_results)
-
-Ebeam_results = np.array(Ebeam_results)
-Eprime_results = np.array(Eprime_results)
+W_results = np.array(W_results)
+Em_results = np.array(Ex_results)
+Pm_results = np.array(Px_results)
+Mm_results = np.array(Mx_results)
 
 # PLOTTING HELPERS
 
@@ -204,10 +226,12 @@ def plot_format(xlabel, ylabel, colorbar, title):
 
 # PLOTTING with constraints
 
-xb_mask = (xb_results > 0) & (xb_results < 0.8)
-theta_mask = (theta_e_results > 12) & (theta_e_results < 90)
-xb_fixed = (xb_results > 0.45) & (xb_results < 0.55) # fixing x to be ~0.5
-t_fixed = (t_results > 0.4) & (t_results < 0.45) # fixing t to be ~0.4-0.45
+mask = (xb_results > 0) & (xb_results < 0.8) & (theta_e_results > 12) & (theta_e_results < 90)
+massk = (Mm_results >= 1e-6) 
+
+# fixed constraints
+xb_fixed = (xb_results > 0.45) & (xb_results < 0.55) & mask     # x ~ 0.5
+t_fixed = (t_results > 0.4) & (t_results < 0.45) & mask         # t ~ 0.4 - 0.45
 
 # Labelling Ebeam, checking if range or fixed.
 
@@ -225,55 +249,70 @@ label_xb_t = (r'$x_b = 0.5$' '\n'
 def Label(label):
     plt.text(0.98, 0.98, label,
              transform=plt.gca().transAxes,
-             va='top', ha='left',
+             va='top', ha='right',
              bbox=dict(facecolor='white',
                        alpha=0.8,edgecolor='black'))
 
 
 # plot_contour(xb_results, q2_results, theta_e_results, xb_mask)
 
-plot_scatter(xb_results, q2_results, theta_e_results, xb_mask & theta_mask)
+plot_scatter(xb_results, q2_results, theta_e_results, mask)
 plot_format(r'$x_b$', r'$Q^2$ (GeV/c)$^2$', r'$\theta_e$ (deg)', 
             fr'($Q^2$, $x_b$, $\theta_e$) Phase Space for $E_b=$ {Ebeam_name} GeV')
 
-plot_scatter(theta_pi_results, p_pi_results, Eprime_results, xb_mask & theta_mask)
+plot_scatter(theta_pi_results, p_pi_results, Eprime_results, mask)
 plot_format(r'$\theta_\pi$ (deg)', r'$p_\pi$ (GeV/c)', r'$E_s$ (GeV)', 
             fr'($p_\pi$, $\theta_\pi$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
 
-plot_scatter(theta_e_results, q2_results, Eprime_results, xb_fixed & theta_mask)
+plot_scatter(theta_e_results, q2_results, Eprime_results, xb_fixed)
 plot_format(r'$\theta_e$ (deg)', r'$Q^2$ (GeV/c)$^2$', r'$E_s$ (GeV)', 
             fr'($Q^2$, $\theta_e$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
 Label(label_xb)
 
-plot_scatter(t_results, p_pi_results, Eprime_results, xb_fixed & theta_mask)
+plot_scatter(t_results, p_pi_results, Eprime_results, xb_fixed)
 plot_format(r'$-t$ (GeV/c)$^2$', r'$p_\pi$ (GeV/c)', r'$E_s$ (GeV)', 
             fr'($p_\pi$, $-t$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
 Label(label_xb)
 
-plot_scatter(t_results, theta_pi_results, Eprime_results, xb_fixed & theta_mask)
+plot_scatter(t_results, theta_pi_results, Eprime_results, xb_fixed)
 plot_format(r'$-t$ (GeV/c)$^2$', r'$\theta_\pi$ (deg)', r'$E_s$ (GeV)', 
             fr'($\theta_\pi$, $-t$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
 Label(label_xb)
 
-plot_scatter(theta_pi_results, k_pi_results, Eprime_results, xb_fixed & theta_mask)
+plot_scatter(theta_pi_results, k_pi_results, Eprime_results, xb_fixed)
 plot_format(r'$\theta_\pi$ (deg)', r'$k_\pi$ (GeV/c)', r'$E_s$ (GeV)',
             fr'($k_\pi$, $\theta_\pi$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
 Label(label_xb)
 
-plot_scatter(theta_pi_results, p_pi_results, Eprime_results, xb_fixed & theta_mask & t_fixed)
+plot_scatter(theta_pi_results, p_pi_results, Eprime_results, xb_fixed & t_fixed)
 plot_format(r'$\theta_\pi$ (deg)', r'$p_\pi$ (GeV/c)', r'$E_s$ (GeV)', 
             fr'($p_\pi$, $\theta_\pi$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
 Label(label_xb_t)
 
-plot_scatter(theta_e_results, q2_results, Eprime_results, xb_fixed & theta_mask & t_fixed)
+plot_scatter(theta_e_results, q2_results, Eprime_results, xb_fixed & t_fixed)
 plot_format(r'$\theta_e$ (deg)', r'$Q^2$ (GeV/c)$^2$', r'$E_s$ (GeV)', 
             fr'($Q^2$, $\theta_e$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
 Label(label_xb_t)
 
-plot_scatter(theta_pi_results, q2_results, Eprime_results, xb_fixed & theta_mask & t_fixed)
+plot_scatter(theta_pi_results, q2_results, Eprime_results, xb_fixed & t_fixed)
 plot_format(r'$\theta_\pi$ (deg)', r'$Q^2$ (GeV/c)$^2$', r'$E_s$ (GeV)', 
             fr'($Q^2$, $\theta_\pi$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
 Label(label_xb_t)
 
+plot_scatter(W_results, q2_results, Eprime_results, mask)
+plot_format(r'$W$ (GeV/c)$^2$', r'$Q^2$ (GeV/c)$^2$', r'$E_s$ (GeV)',
+            fr'($Q^2$, $W$, $E_s) Phase Space for $E_b=$ {Ebeam_name} GeV')
+
+plot_scatter(Mm_results, Pm_results, Eprime_results, mask & massk)
+plot_format(r'$M_m$ (GeV/c$^2$)', r'$P_m$ (GeV/c)', r'$E_s$ (GeV)',
+            fr'($P_m$, $M_m$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
+
+plot_scatter(Mm_results, Em_results, Eprime_results, mask & massk)
+
+plot_scatter(Em_results, Pm_results, Eprime_results, mask & massk)
+
+Mm_results = Mm_results[Mm_results >= 1e-6]
+plt.figure()
+plt.hist(Mm_results, bins=100)
 
 plt.show()

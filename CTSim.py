@@ -132,10 +132,14 @@ luminosity = calclum(current, density, length, A)
 
 # Plotting 2D Histograms
 
-plot2D = [('Q2','thetapq'),
-          ('Q2','t'),
-          ('Q2','epsilon'),
-          ('phad','thetapq')]
+plot2D = [("Q2", "W"),
+          ("Q2", "nu"),
+          ("W", "nu"),
+          ("t", "Q2"),
+          ("thetapq", "phipq"),
+          ("Pm", "t"),
+          ("mmnuc", "Pm"),
+          ('Em', 'Pm')]
 
 def pltall2D(vars, binsize, weights, title):
 
