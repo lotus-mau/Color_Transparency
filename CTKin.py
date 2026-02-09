@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Oct 26 19:31:09 2025
+Kinematic Phase Space and Histogram script
 
 @author: Lotus
 """
@@ -8,7 +8,7 @@ Created on Sun Oct 26 19:31:09 2025
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from scipy.interpolate import griddata
+import CTHelp as cth
 
 plt.close('all')
 
@@ -22,6 +22,7 @@ m_pi = 0.139570611      # charged pion mass
 
 A = 12; Z = 6           # nucleon and atomic number : Carbon-12
 m_A = Z*m_p + (A-Z)*m_n # target mass in GeV/c^2
+m_A_1 = (A-1)*m_p       #
 
 # TEST INPUT
 
@@ -70,12 +71,12 @@ def Calc_kin(Ebeam, Eprime, q2, theta_e, forward=True):
     
     # Invariant mass of the hadronic system
     W2 = m_p**2 + 2*m_p*omega - q2
-    if W2 < (m_n + m_pi)**2:
+    if W2 <= (m_p + m_pi)**2:        
         raise ValueError("Unphysical kinematics: W too small")
     W = np.sqrt(W2)
     
     # CM pion momentum and energy
-    ppi_star = np.sqrt((W2 - (m_n + m_pi)**2)*(W2 - (m_n - m_pi)**2)) / (2*W)
+    ppi_star = np.sqrt((W2 - (m_p + m_pi)**2)*(W2 - (m_p - m_pi)**2)) / (2*W)
     Epi_star = np.sqrt(ppi_star**2 + m_pi**2)
     
     # Boost to lab frame
@@ -94,8 +95,8 @@ def Calc_kin(Ebeam, Eprime, q2, theta_e, forward=True):
     
     k_pi = np.sqrt(max(0.0, ppi_lab**2 + q_abs_comp**2 - 2.0 * ppi_lab * q_abs * cos_theta_pq))
 
-    # Missing energy, momentum, and mass calculations
-    E_x = Ebeam - Eprime + m_p - Epi_lab
+    # Missing energy, momentum, and mass calculations of the nucleon
+    E_x = omega - Epi_lab + m_A
     P_x_vec = q_vec - p_pi_vec; P_x2 = np.dot(P_x_vec, P_x_vec); P_x = np.sqrt(P_x2)
     M_x2 = E_x**2 - P_x2; M_x = np.sqrt(max(0.0, M_x2))
     
@@ -166,7 +167,7 @@ for Ebeam in E_beam:
                 t_results.append(t); W_results.append(W)
                 p_pi_results.append(p_pi); k_pi_results.append(k_pi)
                 Ex_results.append(E_x); Px_results.append(P_x)
-                Mx_results.append(M_x)
+                Mx_results.append(M_x); 
 
                 results.append([Q2_val, xb_val, t, Ebeam, theta_e, Eprime, theta_pi, p_pi, k_pi, W, E_x, P_x, M_x])
                 
@@ -180,6 +181,8 @@ print("Saved results to t_scan_results.csv with", len(df), "rows.")
 Ebeam_results = np.array(Ebeam_results)
 Eprime_results = np.array(Eprime_results)
 
+nu_results = Ebeam_results - Eprime_results
+
 q2_results = np.array(q2_results)
 xb_results = np.array(xb_results)
 theta_e_results = np.array(theta_e_results)
@@ -191,38 +194,6 @@ W_results = np.array(W_results)
 Em_results = np.array(Ex_results)
 Pm_results = np.array(Px_results)
 Mm_results = np.array(Mx_results)
-
-# PLOTTING HELPERS
-
-def plot_contour(x, y, z, mask):
-    
-    x_masked = x[mask]; y_masked = y[mask]; z_masked = z[mask]
-    
-    x_grid = np.linspace(x_masked.min(), x_masked.max(), 200)
-    y_grid = np.linspace(y_masked.min(), y_masked.max(), 200)
-    X, Y = np.meshgrid(x_grid, y_grid)
-    
-    z_grid = griddata((x_masked, y_masked), z_masked, (X, Y), method='linear')
-    
-    # Plot
-    plt.figure()
-    plt.contourf(X, Y, z_grid, levels=50)
-    
-def plot_scatter(x, y, z, mask):
-    
-    x_masked = x[mask]; y_masked = y[mask]; z_masked = z[mask]
-    
-    # Plot
-    #plt.figure()
-    #plt.scatter(x_masked, y_masked, c=z_masked)
-    
-    fig, ax = plt.subplots()
-    plt.scatter(x_masked, y_masked, c=z_masked, marker='s', 
-                s=(450./fig.dpi)**2, edgecolors="None", cmap='bone')
-    
-def plot_format(xlabel, ylabel, colorbar, title):
-    
-    plt.xlabel(xlabel); plt.ylabel(ylabel); plt.colorbar(label=colorbar); plt.title(title)
 
 # PLOTTING with constraints
 
@@ -253,66 +224,59 @@ def Label(label):
              bbox=dict(facecolor='white',
                        alpha=0.8,edgecolor='black'))
 
+# Variable dictionaries
 
-# plot_contour(xb_results, q2_results, theta_e_results, xb_mask)
+results = {"nu": nu_results,
+           "Q2": q2_results,
+           "W": W_results,
+           "xb": xb_results,
+           "Es": Eprime_results,
+           "theta_e": theta_e_results,
+           "t": t_results,
+           "p_pi": p_pi_results,
+           "theta_pi": theta_pi_results,
+           "k_pi": k_pi_results,
+           "Em": Em_results,
+           "Pm": Pm_results,
+           "Mm": Mm_results}
 
-plot_scatter(xb_results, q2_results, theta_e_results, mask)
-plot_format(r'$x_b$', r'$Q^2$ (GeV/c)$^2$', r'$\theta_e$ (deg)', 
-            fr'($Q^2$, $x_b$, $\theta_e$) Phase Space for $E_b=$ {Ebeam_name} GeV')
+# dictionary for plotting phase space graphs
+plotPS = [("xb", "Q2", "theta_e", mask),
+         ("theta_pi", "p_pi", "Es", mask),
+         ("theta_e", "Q2", "Es", xb_fixed),
+         ("t", "p_pi", "Es", xb_fixed),
+         ("t", "theta_pi", "Es", xb_fixed),
+         ("theta_pi", "k_pi", "Es", xb_fixed),
+         ("theta_e", "Q2", "t", xb_fixed),
+         ("theta_pi", "Q2", "t", xb_fixed),
+         ("W", "Q2", "t", xb_fixed),
+         ("Mm", "Pm", "Es", mask & massk),
+         ("Mm", "Em", "Es", mask & massk),
+         ("Em", "Pm", "Es", mask & massk),]
 
-plot_scatter(theta_pi_results, p_pi_results, Eprime_results, mask)
-plot_format(r'$\theta_\pi$ (deg)', r'$p_\pi$ (GeV/c)', r'$E_s$ (GeV)', 
-            fr'($p_\pi$, $\theta_\pi$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
+plotH = [("Mm", 100, mask & massk)]
 
-plot_scatter(theta_e_results, q2_results, Eprime_results, xb_fixed)
-plot_format(r'$\theta_e$ (deg)', r'$Q^2$ (GeV/c)$^2$', r'$E_s$ (GeV)', 
-            fr'($Q^2$, $\theta_e$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
-Label(label_xb)
+plot2H = [("Q2", "W", 100, mask),
+         ("Mm", "Pm", 100, mask)]
 
-plot_scatter(t_results, p_pi_results, Eprime_results, xb_fixed)
-plot_format(r'$-t$ (GeV/c)$^2$', r'$p_\pi$ (GeV/c)', r'$E_s$ (GeV)', 
-            fr'($p_\pi$, $-t$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
-Label(label_xb)
+# RESULTS
 
-plot_scatter(t_results, theta_pi_results, Eprime_results, xb_fixed)
-plot_format(r'$-t$ (GeV/c)$^2$', r'$\theta_\pi$ (deg)', r'$E_s$ (GeV)', 
-            fr'($\theta_\pi$, $-t$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
-Label(label_xb)
+for xkey, ykey, zkey, mask in plotPS:
 
-plot_scatter(theta_pi_results, k_pi_results, Eprime_results, xb_fixed)
-plot_format(r'$\theta_\pi$ (deg)', r'$k_\pi$ (GeV/c)', r'$E_s$ (GeV)',
-            fr'($k_\pi$, $\theta_\pi$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
-Label(label_xb)
+    cth.scatter(results[xkey], results[ykey], results[zkey], mask)
+    cth.format(cth.labels[xkey], cth.labels[ykey], cth.labels[zkey],
+                fr'Phase Space for $E_b=$ {Ebeam_name} GeV')
 
-plot_scatter(theta_pi_results, p_pi_results, Eprime_results, xb_fixed & t_fixed)
-plot_format(r'$\theta_\pi$ (deg)', r'$p_\pi$ (GeV/c)', r'$E_s$ (GeV)', 
-            fr'($p_\pi$, $\theta_\pi$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
-Label(label_xb_t)
+for key, binsize, mask in plotH:
 
-plot_scatter(theta_e_results, q2_results, Eprime_results, xb_fixed & t_fixed)
-plot_format(r'$\theta_e$ (deg)', r'$Q^2$ (GeV/c)$^2$', r'$E_s$ (GeV)', 
-            fr'($Q^2$, $\theta_e$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
-Label(label_xb_t)
+    cth.hist(results[key], bins=binsize, weights=None, mask=mask)
+    cth.format(cth.labels[key], ylabel='Counts', colorbar=None, title=
+               fr'Counts Graphs for $E_b=$ {Ebeam_name} GeV')
 
-plot_scatter(theta_pi_results, q2_results, Eprime_results, xb_fixed & t_fixed)
-plot_format(r'$\theta_\pi$ (deg)', r'$Q^2$ (GeV/c)$^2$', r'$E_s$ (GeV)', 
-            fr'($Q^2$, $\theta_\pi$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
-Label(label_xb_t)
+for xkey, ykey, binsize, mask in plot2H:
 
-plot_scatter(W_results, q2_results, Eprime_results, mask)
-plot_format(r'$W$ (GeV/c)$^2$', r'$Q^2$ (GeV/c)$^2$', r'$E_s$ (GeV)',
-            fr'($Q^2$, $W$, $E_s) Phase Space for $E_b=$ {Ebeam_name} GeV')
-
-plot_scatter(Mm_results, Pm_results, Eprime_results, mask & massk)
-plot_format(r'$M_m$ (GeV/c$^2$)', r'$P_m$ (GeV/c)', r'$E_s$ (GeV)',
-            fr'($P_m$, $M_m$, $E_s$) Phase Space for $E_b=$ {Ebeam_name} GeV')
-
-plot_scatter(Mm_results, Em_results, Eprime_results, mask & massk)
-
-plot_scatter(Em_results, Pm_results, Eprime_results, mask & massk)
-
-Mm_results = Mm_results[Mm_results >= 1e-6]
-plt.figure()
-plt.hist(Mm_results, bins=100)
+    cth.hist2D(results[xkey], results[ykey], bins=binsize, weights=None, mask=mask)
+    cth.format(cth.labels[xkey], cth.labels[ykey], colorbar=None, title=
+                fr'Counts Graphs for $E_b=$ {Ebeam_name} GeV')
 
 plt.show()

@@ -2,6 +2,7 @@ import uproot
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import numpy as np
+import CTHelp as cth
 
 plt.close('all')
 
@@ -56,26 +57,6 @@ vars = ["q",        # magnitude of q vector
         ]
 kin = {v: tree[v].array() for v in vars}
 
-labels = {
-    "q":        r"$|\vec{q}|\ \mathrm{(GeV/c)}$",
-    "nu":       r"$\nu\ \mathrm{(GeV/c)}$",
-    "Q2":       r"$Q^2\ \mathrm{(GeV/c)^2}$",
-    "W":        r"$W\ \mathrm{(GeV)}$",
-    "epsilon":  r"$\epsilon$",
-    "Em":       r"$E_m\ \mathrm{(GeV)}$",
-    "Pm":       r"$P_m\ \mathrm{(GeV/c)}$",
-    "thetapq":  r"$\theta_{pq}\ \mathrm{(rad)}$",
-    "phipq":    r"$\phi_{pq}\ \mathrm{(rad)}$",
-    "mmnuc":    r"$M_{\mathrm{m}}\ \mathrm{(GeV)}$",
-    "phad":     r"$p_{\mathrm{had}}\ \mathrm{(GeV/c)}$",
-    "t":        r"$t\ \mathrm{(GeV^2)}$",
-    "pmpar":    r"$p_{m}^{\parallel}\ \mathrm{(GeV/c)}$",
-    "pmper":    r"$p_{m}^{\perp}\ \mathrm{(GeV/c)}$",
-    "pmoop":    r"$p_{m,\mathrm{oop}}\ \mathrm{(GeV/c)}$",
-    "radphot":  r"",
-    "pfermi":   r"$p_{\mathrm{f}}\ \mathrm{(GeV/c)}$",
-}
-
 def pltformat(xlabel, ylabel, title):
     plt.xlabel(xlabel); plt.ylabel(ylabel); plt.title(title)
 
@@ -96,7 +77,7 @@ def pltallhist(vars, binsize, weights,
         
         # Current is in mA (mC/s)
         h = plt.hist(kin[key], bins=binsize, weights=weights)
-        pltformat(labels.get(key, key), ylabel, title)
+        pltformat(cth.labels.get(key, key), ylabel, title)
 
         h_figs.append(h)
 
@@ -113,22 +94,15 @@ A = 12                  #                   nucleon number
 weight1 = np.ones_like(weight)
 
 # Plotting all Counts/mC graphs
-#pltallhist(plot1D, 100, weight * normfac/ngen, 
+# pltallhist(plot1D, 100, weight * normfac/ngen, 
 #           'Counts/mC', '1mC of Current on Carbon target')
 
 # Plotting all Counts/s graphs 
-#pltallhist(plot1D, 100, weight * normfac / ngen * current, 
-#           'Counts/s', 'Count Rates on Carbon target')
+pltallhist(plot1D, 100, weight * normfac / ngen * current, 
+           'Counts/s', 'Count Rates on Carbon target')
 
-# Calculating luminosity:
-def calclum(current, density, length, A):
-
-    L_B = current / q_e                     # number of electrons per second
-    L_T = density * length / A * N_A        # number of particles (nucleon per nucleus) in unit area
-
-    return L_B * L_T
-
-luminosity = calclum(current, density, length, A)
+luminosity = cth.calclum(current, density, length, A)
+print(luminosity)
 
 # Plotting 2D Histograms
 
@@ -138,7 +112,7 @@ plot2D = [("Q2", "W"),
           ("t", "Q2"),
           ("thetapq", "phipq"),
           ("Pm", "t"),
-          ("mmnuc", "Pm"),
+          ("Pm", "mmnuc"),
           ('Em', 'Pm')]
 
 def pltall2D(vars, binsize, weights, title):
@@ -150,7 +124,7 @@ def pltall2D(vars, binsize, weights, title):
                        bins=binsize, weights=np.asarray(weights), 
                        norm=LogNorm())
         plt.colorbar(label=r'Counts/s')
-        pltformat(labels.get(xkey, xkey), labels.get(ykey, ykey), title)
+        pltformat(cth.labels.get(xkey, xkey), cth.labels.get(ykey, ykey), title)
 
 pltall2D(plot2D, 100, weight * normfac / ngen * current, 
          'Count Rates on Carbon target, comparison')
