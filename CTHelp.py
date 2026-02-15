@@ -8,6 +8,7 @@ primarily uses matplotlib.pyplot for plotting functions
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+from scipy.interpolate import griddata
 
 ## CONSTANTS
 
@@ -15,7 +16,32 @@ from matplotlib.colors import LogNorm
 q_e = 1.602e-19 * 1000  # C -> mC           elementary charge
 N_A = 6.022e23          # 1/mol             Avogadro's number
 
-## DEFINITIONS
+m_p  = 0.9382720813     # proton mass
+m_n = 0.93956563        # neutron mass
+m_pi = 0.139570611      # charged pion mass
+
+A = 12
+
+# SPECS (figure out later how to extract from hist file)
+
+ngen = 10000        # number of generated events
+
+# from hist file, yet to know how its calculated
+normfac = {"1pi": 0.538378E+07,
+           "2pi": 0.980948E+06,
+           "norad": 0.144393E+08} 
+# cm
+length = {"1pi": 0.294089,
+          "2pi": 0.294089,
+          "norad": 0.995858}
+# g/cm^3
+density = {"1pi": 0.2267e1,
+           "2pi": 0.2267e1,
+           "norad": 0.169e1}
+
+current = 40 / 1000     # muA -> mA : mC/s
+
+## HELPERS
 
 def format(xlabel, ylabel, colorbar, title):
 
@@ -24,34 +50,64 @@ def format(xlabel, ylabel, colorbar, title):
     if colorbar != None:
         plt.colorbar(label=colorbar)
 
-def hist(x, bins, weights, mask):
+def hist(x, bins, weights, mask, type):
 
-    x_masked = x[mask]
+    if mask != None:
 
-    plt.figure()
-    plt.hist(x_masked, bins=bins, weights=weights)
+        x = x[mask]; weights = weights[mask]
+
+    plt.hist(x, bins=bins, weights=weights, histtype=type)
 
 def hist2D(x, y, bins, weights, mask):
 
-    x_masked = x[mask] ; y_masked = y[mask]
+    if mask != None:
+        
+        x = x[mask]; y = y[mask]; weights=weights[mask]
 
-    plt.figure()
-    plt.hist2d(x_masked, y_masked, bins=bins, weights=weights, norm=LogNorm())
+    plt.hist2d(x, y, bins=bins, weights=weights, norm=LogNorm())
 
-def scatter(x, y, z, mask):
+def scatter(x, y, z, mask, fig):
 
-    x_masked = x[mask]; y_masked = y[mask]; z_masked = z[mask]
-    
-    fig, _ = plt.subplots()
-    plt.scatter(x_masked, y_masked, c=z_masked, marker='s', 
+    if mask != None:
+
+        x = x[mask]; y = y[mask]; z = z[mask]
+
+    plt.scatter(x, y, c=z, marker='s', 
                 s=(450./fig.dpi)**2, edgecolors="None", cmap='viridis')
+    
+def contour(x, y, z, mask):
+    
+    if mask != None:
+
+        x = x[mask]; y = y[mask]; z = z[mask]
+    
+    x_grid = np.linspace(x.min(), x.max(), 200)
+    y_grid = np.linspace(y.min(), y.max(), 200)
+    X, Y = np.meshgrid(x_grid, y_grid)
+    
+    z_grid = griddata((x, y), z, (X, Y), method='linear')
+    
+    plt.contourf(X, Y, z_grid, levels=50)
+
+def Label(label):
+    plt.text(0.98, 0.98, label,
+             transform=plt.gca().transAxes,
+             va='top', ha='right',
+             bbox=dict(facecolor='white',
+                       alpha=0.8,edgecolor='black'))
+
+# DEFINITIONS
 
 def calclum(current, density, length, A):
 
-    L_B = current / q_e                     # number of electrons per second
-    L_T = density * length / A * N_A        # number of particles (nucleon per nucleus) in unit area
+    lum_B = current / q_e                     # number of electrons per second
+    lum_T = density * length / A * N_A        # number of particles (nucleon per nucleus) in unit area
 
-    return L_B * L_T
+    return lum_B * lum_T
+
+luminosity = {"1pi": calclum(current, density['1pi'], length['1pi'], A),
+              "2pi": calclum(current, density['2pi'], length['2pi'], A),
+              "norad": calclum(current, density['norad'], length['norad'], A)}
 
 ## USEFUL VARIABLES
 
@@ -61,11 +117,12 @@ vars = [
     "Q2",       # virtual photon momentum transfer
     "W",        # invariant rest mass of system
     "epsilon",  # ?
-    "Es",       # scattered electron energy
+    "Eprime",   # scattered electron energy
     "theta_e",  # scattered electron angle
     "Em",       # reconstructed missing energy
     "Pm",       # reconstructed missing momentum
-    "p_pi",     # pion momentum
+    "k_pi",     # pion 3-momentum
+    "p_pi",     # pion 4-momentum
     "theta_pi", # pion angle
     "thetapq",  # angle between pion and q
     "phipq",    # angle between pion and q atomic planes
@@ -86,7 +143,7 @@ labels = {
     "W":        r"$W\ \mathrm{(GeV)}$",
     "xb":       r"$x_b$",
     "epsilon":  r"$\epsilon$",
-    "Es":       r"$E_s\ \mathrm{(GeV)}$",
+    "Eprime":   r"$E'\ \mathrm{(GeV)}$",
     "theta_e":  r"$\theta_{\mathrm{e}}\ \mathrm{(\deg)}$",
     "Em":       r"$E_m\ \mathrm{(GeV)}$",
     "Pm":       r"$P_m\ \mathrm{(GeV/c)}$",
@@ -96,7 +153,7 @@ labels = {
     "thetapq":  r"$\theta_{pq}\ \mathrm{(rad)}$",
     "phipq":    r"$\phi_{pq}\ \mathrm{(rad)}$",
     "Mm":       r"$M_{\mathrm{m}}\ \mathrm{(GeV)}$",
-    "Mmnuc":    r"$M_{\mathrm{m}}\ \mathrm{(GeV)}$",
+    "mmnuc":    r"$M_{\mathrm{m}}^{\mathrm{nuc}}\ \mathrm{(GeV)}$",
     "phad":     r"$p_{\mathrm{had}}\ \mathrm{(GeV/c)}$",
     "t":        r"$t\ \mathrm{(GeV^2)}$",
     "pmpar":    r"$p_{m}^{\parallel}\ \mathrm{(GeV/c)}$",
@@ -104,4 +161,8 @@ labels = {
     "pmoop":    r"$p_{m,\mathrm{oop}}\ \mathrm{(GeV/c)}$",
     "radphot":  r"",
     "pfermi":   r"$p_{\mathrm{f}}\ \mathrm{(GeV/c)}$",
+    "Counts_mC": r"$Counts/mC$",
+    "Counts_s":  r"$Counts/s$"
 }
+
+print("\nHelper Callback/Update Finished\n")

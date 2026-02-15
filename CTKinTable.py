@@ -13,6 +13,8 @@ M_p  = 0.9382720813   # proton mass
 M_pi = 0.139570611    # charged pion mass
 PI   = math.pi
 
+# HELPERS
+
 def pstar_from_W(W):
     """Two-body CM momentum for p + pi final state given W (GeV)."""
     s = W*W
@@ -175,11 +177,15 @@ def find_thetaStar_for_t_given_Eprime(Ebeam, Q2, Eprime, t_target, Nscan=360):
         prev_t = tval
     return False, None, None, None
 
-def pionCTkinematics(Q2, Ebeam, t_target):
+# HELPERS
+
+def main(input):
     """
     Main routine: scan E' and find forward-most thetaStar solution matching t_target.
     Prints results.
     """
+    Q2, Ebeam, t_target = input
+
     # scanning parameters (tune as needed)
     Emin = 0.05
     Emax = Ebeam - 0.05
@@ -269,6 +275,9 @@ def pionCTkinematics(Q2, Ebeam, t_target):
 
     thetaE_deg = thetaE * 180.0 / PI
 
+    t = best['t']
+    thetaStar = best['thetaStar']*180.0/PI
+
     # Print
     print("=== Solution (chosen forward-most) ===")
     print(f"Input:  Q2 = {Q2:.5f} GeV^2, Ebeam = {Ebeam:.5f} GeV, t_target = {t_target:.5f} GeV^2")
@@ -280,12 +289,37 @@ def pionCTkinematics(Q2, Ebeam, t_target):
     print(f"--->k_pi (your formula) = {kpi_formula:.6f} GeV")
     print(f"nu (q0)          = {nu:.6f} GeV, |q| = {qmag:.6f} GeV")
     print(f"p*_pi (CM)       = {pstar:.6f} GeV/c")
-    print(f"t (found)        = {best['t']:.6f} GeV^2")
-    print(f"theta*_CM (deg)  = {best['thetaStar']*180.0/PI:.6f} deg")
+    print(f"t (found)        = {t:.6f} GeV^2")
+    print(f"theta*_CM (deg)  = {thetaStar:.6f} deg")
     print("-------------------------------------")
-    print("Note: If you need more precision, reduce dE and/or increase Nscan in the theta* scanning function.")
+    print("Note: If you need more precision, reduce dE and/or increase Nscan in the theta* scanning function.\n")
+
+    results = {"Q2": Q2, 
+               "Ebeam": Ebeam, 
+               "t_target": t_target, 
+               "W": W, 
+               "theta_e": thetaE_deg, 
+               "Eprime": Eprime, 
+               "theta_pi": theta_pi_lab_deg, 
+               "p_pi": ppi_lab, 
+               "k_pi": kpi_formula, 
+               "nu": nu, 
+               "q": qmag, 
+               "p_star": pstar, 
+               "t": t, 
+               "theta_star": thetaStar
+               }
+    
+    print("Kinematic Calculations Process Finished\n")
+
+    return results
 
 # Example usage:
 if __name__ == "__main__":
-    # example numbers similar to your macro
-    pionCTkinematics(Q2=5.0, Ebeam=11.0, t_target=-0.527)
+
+    input = [5.0,       # Q2
+             11.0,      # Ebeam
+             -0.527     # t_target
+             ]
+
+    main(input)
