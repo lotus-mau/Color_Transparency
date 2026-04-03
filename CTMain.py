@@ -20,7 +20,7 @@ inputKT = [5.0,       # Q2
 inputK = [np.array([11.0]),              # E_beam       
           np.arange(4.0, 5.0, 0.01),     # Q2
           12,                            # A
-          6                              # 6
+          6                              # Z
           ]
 
 # Labelling Ebeam, checking if range or fixed.
@@ -43,7 +43,7 @@ resultsSIM = {"1pi": cts.main("pionCT-sim/pion_q5_og.root"),
               "norad": cts.main("pionCT-sim/pion_q5_norad.root")}
 
 # resultsKT           = ctkt.main(inputKT)
-# resultsK, masksK    = ctk.main(inputK)
+resultsK, masksK    = ctk.main(inputK)
 
 # KIN PLOTTING
 
@@ -63,12 +63,11 @@ plotPS = [("xb", "Q2", "theta_e", "detection"),
             ("Mm", "Q2", "xb", "detection")]
 
 # (xkey, binsize, mask)
-plotH = [("Mm", 100, "detection")]
+plotH = [("Mm", 100, "physical")]
 
 # (xkey, ykey, binsize, mask)
-plot2H = [("Q2", "W", 100, "detection"),
-          ("Mm", "Pm", 100, "detection"),
-          ("Mm", "Q2", 100, "detection")]
+plot2H = [("Mm", "Pm", 100, "physical"),
+          ("Mm", "Q2", 100, "physical")]
 
 # for xkey, ykey, zkey, mask in plotPS:
 
@@ -81,8 +80,8 @@ plot2H = [("Q2", "W", 100, "detection"),
 # for key, binsize, mask in plotH:
 
 #     plt.figure()
-#     cth.hist(resultsK[key], bins=binsize, 
-#              weights=None, mask=masksK[mask])
+#     cth.hist(x=resultsK[key], bins=binsize, 
+#              weights=None, mask=masksK[mask], type='bar')
 #     cth.format(cth.labels[key], ylabel='Counts', colorbar=None, title=
 #             fr'Counts Graphs for $E_b=$ {Ebeam_name} GeV')
 
@@ -91,7 +90,7 @@ plot2H = [("Q2", "W", 100, "detection"),
 #     plt.figure()
 #     cth.hist2D(resultsK[xkey], resultsK[ykey], binsize, 
 #                weights=None, mask=masksK[mask])
-#     cth.format(cth.labels[xkey], cth.labels[ykey], colorbar=None, title=
+#     cth.format(cth.labels[xkey], cth.labels[ykey], colorbar=fr'Counts/s', title=
 #                 fr'Counts Graphs for $E_b=$ {Ebeam_name} GeV')
     
 # SIM PLOTTING
@@ -190,5 +189,6 @@ contamination_results = np.array(contamination_results)
 
 contamination_mask = (contamination_results >= 0.040) & (contamination_results <= 0.060)
 plt.axvline(cut_results[contamination_mask], linestyle='--')
+cth.Label(r'$Q^2 = 5.0$ $\mathrm{(GeV/c^2)}$')
 
 plt.show()

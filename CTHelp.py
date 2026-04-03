@@ -47,28 +47,38 @@ def format(xlabel, ylabel, colorbar, title):
 
     plt.xlabel(xlabel); plt.ylabel(ylabel); plt.title(title)
 
-    if colorbar != None:
+    if colorbar is not None:
         plt.colorbar(label=colorbar)
 
 def hist(x, bins, weights, mask, type):
-
-    if mask != None:
-
-        x = x[mask]; weights = weights[mask]
+    
+    if mask is not None:
+        
+        x = x[mask]; 
+        
+        if weights is not None:
+            
+            weights = weights[mask]
 
     plt.hist(x, bins=bins, weights=weights, histtype=type)
 
 def hist2D(x, y, bins, weights, mask):
 
-    if mask != None:
+    if mask is not None:
         
-        x = x[mask]; y = y[mask]; weights=weights[mask]
+        x = x[mask]; y = y[mask]; 
+        
+        if weights is not None:
+            
+            weights=weights[mask]
 
-    plt.hist2d(x, y, bins=bins, weights=weights, norm=LogNorm())
+    plt.hist2d(x, y, bins=bins, weights=weights 
+               , norm=LogNorm()
+               )
 
 def scatter(x, y, z, mask, fig):
 
-    if mask != None:
+    if mask is not None:
 
         x = x[mask]; y = y[mask]; z = z[mask]
 
@@ -77,7 +87,7 @@ def scatter(x, y, z, mask, fig):
     
 def contour(x, y, z, mask):
     
-    if mask != None:
+    if mask is not None:
 
         x = x[mask]; y = y[mask]; z = z[mask]
     
