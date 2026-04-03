@@ -34,7 +34,7 @@ if len(Ebeam) != 1:
 label_xb = (r'$x_b = 0.5$')
 
 label_xb_t = (r'$x_b = 0.5$' '\n' 
-            r'$t = -0.4$ (GeV/c)$^2$')
+              r'$t = -0.4$ (GeV/c)$^2$')
 
 # RESULTS DICTIONARY
 
@@ -112,15 +112,21 @@ weights_lum = {"1pi": weights_rate['1pi'] * cth.luminosity['1pi'],
 
 print('Weights Evaluated\n')
 
-plt.figure()
-for key in resultsSIM:
-    cth.hist(resultsSIM[key]['mmnuc'], 100, weights_rate[key], mask=None, type='step')
-cth.format(cth.labels['mmnuc'], cth.labels['Counts_s'], colorbar=None, title=
-           fr'Missing Mass Rates Graphs for 1pi, 2pi, and norad Processes')
+# plt.figure()
+# for key in resultsSIM:
+#     cth.hist(resultsSIM[key]['mmnuc'], 100, weights_rate[key], mask=None, type='step')
+# cth.format(cth.labels['mmnuc'], cth.labels['Counts_s'], colorbar=None, title=
+#            fr'Missing Mass Rates Graphs for 1pi, 2pi, and norad Processes')
 
 # above plot is... interesting. ask Holly
 # answer: norad was just to compare radiative effects on the reaction, 
 # plus, plot makes sense relatively. 
+
+plt.figure()
+cth.hist(resultsSIM['1pi']['mmnuc'], 100, weights_rate['1pi'], mask=None, type='step')
+cth.hist(resultsSIM['2pi']['mmnuc'], 100, weights_rate['2pi'], mask=None, type='stepfilled')
+cth.format(cth.labels['mmnuc'], cth.labels['Counts_s'], colorbar=None, title=
+           fr'Missing Mass Rates Graphs for 1pi, 2pi, and norad Processes')
 
 print("Plots Created\n")
 
@@ -147,9 +153,12 @@ print(f"1pi to norad Peak normalization: {weight_norm:.3f}\n")
 # and calculate the contamination of 2pi related to 1pi. (fraction of 2pi from 1pi)
 # cut on MM | 2pi rate | signal rate (subtracted)
 
-cut_slider = np.arange(11.0, 13.0, 0.1)
+cut_slider = np.arange(11.5, 12.5, 0.1)
 
-contamination = []
+cut_results = []
+tot1pi_results = []
+tot2pi_results = []
+contamination_results = []
 
 for cut in cut_slider: # Missing mass
 
@@ -162,10 +171,24 @@ for cut in cut_slider: # Missing mass
     
     frac = h_tot['2pi'] / h_tot['1pi']
 
-    contamination.append(frac)
-
-print(contamination[i] for i in contamination)
+    cut_results.append(cut)
+    tot1pi_results.append(h_tot['1pi'])
+    tot2pi_results.append(h_tot['2pi'])
+    contamination_results.append(frac)
 
 # talk to Hemma and Leo for plot format
+
+print(f'\n ------ CONTAMINATION RESULTS for Q2 = {5.0} ------')
+print(f'\n Cut | 1pi Total | 2pi Total | Contamination ')
+for i in range(len(contamination_results)):
+    print(f'{cut_results[i]:.1f} | {tot1pi_results[i]:.1f}      | {tot2pi_results[i]:.3f}     | {contamination_results[i]:.6f}')
+
+cut_results = np.array(cut_results)
+tot1pi_results = np.array(tot1pi_results)
+tot2pi_results = np.array(tot2pi_results)
+contamination_results = np.array(contamination_results)
+
+contamination_mask = (contamination_results >= 0.040) & (contamination_results <= 0.060)
+plt.axvline(cut_results[contamination_mask], linestyle='--')
 
 plt.show()
