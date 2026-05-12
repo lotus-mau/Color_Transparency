@@ -8,7 +8,7 @@ Kinematic Phase Space and Histogram script
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-import CTHelp as cth
+import scripts.CTHelp as cth
 
 plt.close('all')
 

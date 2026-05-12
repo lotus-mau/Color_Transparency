@@ -12,15 +12,18 @@ import CTKinTable as ctkt
 
 # INPUTS
 
-inputKT = [5.0,       # Q2
-           11.0,      # Ebeam
-           -0.527     # t_target
+Q2 = 6.5
+beam = 11.0
+
+inputKT = [Q2,       
+           beam,        # Ebeam
+           -0.527       # t_target
            ]
 
-inputK = [np.array([11.0]),              # E_beam       
-          np.arange(4.0, 5.0, 0.01),     # Q2
-          12,                            # A
-          6                              # Z
+inputK = [np.array([beam]),                     # E_beam       
+          np.arange(Q2-0.5, Q2+0.5, 0.01),  # Q2 range
+          cth.A,                                # A
+          cth.Z                                 # Z
           ]
 
 # Labelling Ebeam, checking if range or fixed.
@@ -42,7 +45,7 @@ resultsSIM = {"1pi": cts.main("pionCT-sim/pion_q5_og.root"),
               "2pi": cts.main("pionCT-sim/pion_q5_2pi.root"),
               "norad": cts.main("pionCT-sim/pion_q5_norad.root")}
 
-# resultsKT           = ctkt.main(inputKT)
+resultsKT           = ctkt.main(inputKT)
 resultsK, masksK    = ctk.main(inputK)
 
 # KIN PLOTTING
@@ -57,10 +60,11 @@ plotPS = [("xb", "Q2", "theta_e", "detection"),
             ("theta_e", "Q2", "t", "fix_xb"),
             ("theta_pi", "Q2", "t", "fix_xb"),
             ("W", "Q2", "t", "fix_xb"),
-            ("Mm", "Pm", "Eprime", "detection"),
+            ("Mm", "Pm", "Eprime", "physical"),
             ("Mm", "Em", "Eprime", "detection"),
             ("Em", "Pm", "Eprime", "detection"),
-            ("Mm", "Q2", "xb", "detection")]
+            ("Mm", "Q2", "Eprime", "physical")
+            ]
 
 # (xkey, binsize, mask)
 plotH = [("Mm", 100, "physical")]
@@ -69,29 +73,32 @@ plotH = [("Mm", 100, "physical")]
 plot2H = [("Mm", "Pm", 100, "physical"),
           ("Mm", "Q2", 100, "physical")]
 
-# for xkey, ykey, zkey, mask in plotPS:
+for xkey, ykey, zkey, mask in plotPS:
 
-#     fig, _ = plt.subplots()
-#     cth.scatter(resultsK[xkey], resultsK[ykey], resultsK[zkey], 
-#                 masksK[mask], fig)
-#     cth.format(cth.labels[xkey], cth.labels[ykey], cth.labels[zkey],
-#                 fr'Phase Space for $E_b=$ {Ebeam_name} GeV')
+    fig, _ = plt.subplots()
+    cth.scatter(resultsK[xkey], resultsK[ykey], resultsK[zkey], 
+                masksK[mask], fig)
+    cth.format(cth.labels[xkey], cth.labels[ykey], cth.labels[zkey],
+                fr'Phase Space for $E_b=$ {Ebeam_name} GeV')
+    cth.savefig(f'figures/Q2={Q2}', f'PS_{xkey}_{ykey}_{mask}')
 
-# for key, binsize, mask in plotH:
+for key, binsize, mask in plotH:
 
-#     plt.figure()
-#     cth.hist(x=resultsK[key], bins=binsize, 
-#              weights=None, mask=masksK[mask], type='bar')
-#     cth.format(cth.labels[key], ylabel='Counts', colorbar=None, title=
-#             fr'Counts Graphs for $E_b=$ {Ebeam_name} GeV')
+    plt.figure()
+    cth.hist(x=resultsK[key], bins=binsize, 
+             weights=None, mask=masksK[mask], type='bar')
+    cth.format(cth.labels[key], ylabel='Counts', colorbar=None, title=
+            fr'Counts Graphs for $E_b=$ {Ebeam_name} GeV')
+    cth.savefig(f'figures/Q2={Q2}', f'histo_{key}_{mask}')
 
-# for xkey, ykey, binsize, mask in plot2H:
+for xkey, ykey, binsize, mask in plot2H:
 
-#     plt.figure()
-#     cth.hist2D(resultsK[xkey], resultsK[ykey], binsize, 
-#                weights=None, mask=masksK[mask])
-#     cth.format(cth.labels[xkey], cth.labels[ykey], colorbar=fr'Counts/s', title=
-#                 fr'Counts Graphs for $E_b=$ {Ebeam_name} GeV')
+    plt.figure()
+    cth.hist2D(resultsK[xkey], resultsK[ykey], binsize, 
+               weights=None, mask=masksK[mask])
+    cth.format(cth.labels[xkey], cth.labels[ykey], colorbar=None, title=
+                fr'Counts Graphs for $E_b=$ {Ebeam_name} GeV')
+    cth.savefig(f'figures/Q2={Q2}', f'histo2D_{xkey}_{ykey}_{mask}')
     
 # SIM PLOTTING
 
@@ -111,15 +118,31 @@ weights_lum = {"1pi": weights_rate['1pi'] * cth.luminosity['1pi'],
 
 print('Weights Evaluated\n')
 
-# plt.figure()
-# for key in resultsSIM:
-#     cth.hist(resultsSIM[key]['mmnuc'], 100, weights_rate[key], mask=None, type='step')
-# cth.format(cth.labels['mmnuc'], cth.labels['Counts_s'], colorbar=None, title=
-#            fr'Missing Mass Rates Graphs for 1pi, 2pi, and norad Processes')
+plt.figure()
+for key in resultsSIM:
+    cth.hist(resultsSIM[key]['mmnuc'], 100, weights_rate[key], mask=None, type='step')
+cth.format(cth.labels['mmnuc'], cth.labels['Counts_s'], colorbar=None, title=
+           fr'Missing Mass Rates Graphs for 1pi, 2pi, and norad Processes')
 
 # above plot is... interesting. ask Holly
 # answer: norad was just to compare radiative effects on the reaction, 
 # plus, plot makes sense relatively. 
+
+# (xkey, ykey, binsize, mask)
+plotSIM = [("mmnuc", "Pm", 100, weights_rate["1pi"]),
+        ("mmnuc", "Q2", 100, weights_rate["1pi"])]
+
+for xkey, ykey, binsize, weight in plotSIM:
+
+    x = np.asarray(resultsSIM['1pi'][xkey])
+    y = np.asarray(resultsSIM['1pi'][ykey])
+    w = np.asarray(weight)
+
+    plt.figure()
+    cth.hist2D(x, y, binsize, 
+               weights=w, mask=None)
+    cth.format(cth.labels[xkey], cth.labels[ykey], colorbar='Counts/s', title=
+                fr'Counts Graphs for $E_b=$ {Ebeam_name} GeV')
 
 plt.figure()
 cth.hist(resultsSIM['1pi']['mmnuc'], 100, weights_rate['1pi'], mask=None, type='step')
@@ -177,10 +200,30 @@ for cut in cut_slider: # Missing mass
 
 # talk to Hemma and Leo for plot format
 
-print(f'\n ------ CONTAMINATION RESULTS for Q2 = {5.0} ------')
-print(f'\n Cut | 1pi Total | 2pi Total | Contamination ')
-for i in range(len(contamination_results)):
-    print(f'{cut_results[i]:.1f} | {tot1pi_results[i]:.1f}      | {tot2pi_results[i]:.3f}     | {contamination_results[i]:.6f}')
+# print(f'\n ------ CONTAMINATION RESULTS for Q2 = {Q2} ------')
+# print(f'\n Cut | 1pi Total | 2pi Total | Contamination ')
+# for i in range(len(contamination_results)):
+#     print(f'{cut_results[i]:.1f} | {tot1pi_results[i]:.1f}      | {tot2pi_results[i]:.3f}     | {contamination_results[i]:.6f}')
+# print('')
+
+with open(f"figures/Q2={Q2}/contamination.txt", "a") as f:
+        header = f"\n ------ CONTAMINATION RESULTS for Q2 = {Q2} ------"
+        columns = f"\n{'Cut':>5} |{'1pi Total':>10} |{'2pi Total':>10} |{'Contamination':>14}"
+
+        print(header)
+        print(columns)
+        f.write(header + "\n")
+        f.write(columns + "\n")
+
+        for cut, tot1, tot2, contam in zip(
+            cut_results, tot1pi_results, tot2pi_results, contamination_results
+        ):
+            line = f"{cut:5.1f} |{tot1:10.1f} |{tot2:10.3f} |{contam:14.6f}"
+            print(line)
+            f.write(line + "\n")
+
+        print()
+        f.write("\n")
 
 cut_results = np.array(cut_results)
 tot1pi_results = np.array(tot1pi_results)
@@ -189,6 +232,7 @@ contamination_results = np.array(contamination_results)
 
 contamination_mask = (contamination_results >= 0.040) & (contamination_results <= 0.060)
 plt.axvline(cut_results[contamination_mask], linestyle='--')
-cth.Label(r'$Q^2 = 5.0$ $\mathrm{(GeV/c^2)}$')
+cth.label(r'$Q^2 = 5.0$ $\mathrm{(GeV/c^2)}$')
+cth.savefig(f'figures/Q2={Q2}', f'MMr_contamination')
 
 plt.show()

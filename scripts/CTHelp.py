@@ -5,6 +5,7 @@ that are helpful when conducting research for CT
 primarily uses matplotlib.pyplot for plotting functions
 """
 
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -12,7 +13,6 @@ from scipy.interpolate import griddata
 
 ## CONSTANTS
 
-# constants
 q_e = 1.602e-19 * 1000  # C -> mC           elementary charge
 N_A = 6.022e23          # 1/mol             Avogadro's number
 
@@ -21,6 +21,7 @@ m_n = 0.93956563        # neutron mass
 m_pi = 0.139570611      # charged pion mass
 
 A = 12
+Z = 6
 
 # SPECS (figure out later how to extract from hist file)
 
@@ -64,6 +65,10 @@ def hist(x, bins, weights, mask, type):
 
 def hist2D(x, y, bins, weights, mask):
 
+    # x = np.asarray(x)
+    # y = np.asarray(y)
+    # weights = np.asarray(weights)
+
     if mask is not None:
         
         x = x[mask]; y = y[mask]; 
@@ -99,12 +104,20 @@ def contour(x, y, z, mask):
     
     plt.contourf(X, Y, z_grid, levels=50)
 
-def Label(label):
+def label(label):
     plt.text(0.98, 0.98, label,
              transform=plt.gca().transAxes,
              va='top', ha='right',
              bbox=dict(facecolor='white',
                        alpha=0.8,edgecolor='black'))
+    
+def savefig(folder, name):
+
+    os.makedirs(folder, exist_ok=True)
+
+    path = os.path.join(folder, name)
+
+    plt.savefig(path, dpi=300, bbox_inches='tight')
 
 # DEFINITIONS
 

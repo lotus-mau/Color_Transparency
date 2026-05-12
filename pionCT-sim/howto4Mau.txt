@@ -1,0 +1,48 @@
+ssh -Y username@scilogin.jlab.org
+pin+MFA
+ssh ifarm
+CUE pw
+source ~hszumila/setupMOD.sh
+git clone https://github.com/Mbedier/simc_gfortran.git
+cd simc_gfortran
+make (you should not have to do this unless you need to recompile the code)
+mkdir worksim
+cd infiles
+git clone https://github.com/hszumila/pionCTscripts
+mv pionCTscripts/* .
+cd .. (you want to be in the main folder)
+
+Files to run are in the infiles directory now, with names like pion_qsomething.inp. To open files, you can type emacs filename
+
+To run a simulation, from the main directory, make sure you are compiled
+./simc
+filename
+
+After it's done, cd util/root_tree
+make (only have to do that once)
+./make_root_tree
+enter the name of the file
+Now your file is from the main directory you can find the root file in worksim.
+The .hist file is in the outfiles directory (from the main directory)
+
+From your local machine, get the file from:
+scp "username@ftp.jlab.org:~hszumila/xfer/pion_q8p5.root" .
+enter pin+MFA
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if you want to run the multipion bg, then you would do this and recompile:
+mv simc.f simc_og.f
+mv event.f event_og.f
+ln -s simc_multipiNew.f simc.f
+ln -s event_multipiNew.f event.f
+
+if you run the non-bg, then you would make sure you are running with event.f and simc.f (original files) and compile and run.
+rm simc.f
+rm event.f
+ln -s simc_og.f simc.f
+ln -s event_og.f event.f
+
+
+
+
