@@ -72,8 +72,8 @@ label_xb_t = (r'$x_b = 0.5$' '\n'
 
 resultsSIM = {
     "1pi": cts.main(f"pionCT-sim/pion_{q2tags[Q2]}_og.root"),
-    "2pi": cts.main(f"pionCT-sim/pion_{q2tags[Q2]}_2pi.root"),
-    "norad": cts.main(f"pionCT-sim/pion_{q2tags[Q2]}_norad.root"),
+    "2pi": cts.main(f"pionCT-sim/pion_{q2tags[Q2]}_multpi.root"),
+    #"norad": cts.main(f"pionCT-sim/pion_{q2tags[Q2]}_multpi.root"),
 }
 
 #%% Kinematic Table Calculations 
@@ -149,17 +149,20 @@ print(f"2D Histograms created: {time.time() - t2H:.2f} s")
 # coefficients
 weights = {"1pi": resultsSIM['1pi']['Weight'] * cth.normfac['1pi'] / cth.ngen,
            "2pi": resultsSIM['2pi']['Weight'] * cth.normfac['2pi'] / cth.ngen,
-           "norad": resultsSIM['norad']['Weight'] * cth.normfac['norad'] / cth.ngen}
+           #"norad": resultsSIM['norad']['Weight'] * cth.normfac['norad'] / cth.ngen
+           }
 
 weight_norm = 0.243
 
 weights_rate = {"1pi": weights['1pi'] * cth.current,
                 "2pi": weights['2pi'] * cth.current,
-                "norad": weights['norad'] * cth.current * weight_norm}
+                #"norad": weights['norad'] * cth.current * weight_norm
+                }
 
 weights_lum = {"1pi": weights_rate['1pi'] * cth.luminosity['1pi'],
                "2pi": weights_rate['2pi'] * cth.luminosity['2pi'],
-               "norad": weights_rate['norad'] * cth.luminosity['norad']}
+               #"norad": weights_rate['norad'] * cth.luminosity['norad']
+               }
 
 tSIM = time.time()
 plt.figure()
@@ -191,6 +194,7 @@ for xkey, ykey, binsize, weight in plotSIM:
 plt.figure()
 cth.hist(resultsSIM['1pi']['mmnuc'], 100, weights_rate['1pi'], mask=None, type='step')
 cth.hist(resultsSIM['2pi']['mmnuc'], 100, weights_rate['2pi'], mask=None, type='stepfilled')
+#cth.hist(resultsSIM['norad']['mmnuc'], 100, weights_rate['norad'], mask=None, type='stepfilled')
 cth.format(cth.labels['mmnuc'], cth.labels['Counts_s'], colorbar=None, title=
            fr'Missing Mass Rates Graphs for 1pi, 2pi, and norad Processes')
 
@@ -208,18 +212,18 @@ print(f"SIM plots created: {time.time() - tSIM:.2f} s")
 
 #target diff:
 
-density_diff = abs(cth.density['1pi'] - cth.density['norad']) / cth.density['1pi']
-length_diff = abs(cth.length['1pi'] - cth.length['norad']) / cth.length['1pi']
+#density_diff = abs(cth.density['1pi'] - cth.density['norad']) / cth.density['1pi']
+#length_diff = abs(cth.length['1pi'] - cth.length['norad']) / cth.length['1pi']
 
-print(f"\n Target Difference: \n Density: {density_diff:.3f} \n Length {length_diff:.3f}\n")
-print(f"1pi to norad Peak normalization: {weight_norm:.3f}\n")
+#print(f"\n Target Difference: \n Density: {density_diff:.3f} \n Length {length_diff:.3f}\n")
+#print(f"1pi to norad Peak normalization: {weight_norm:.3f}\n")
 
 # table:
 # place cuts around left tail of 2pi, 
 # and calculate the contamination of 2pi related to 1pi. (fraction of 2pi from 1pi)
 # cut on MM | 2pi rate | signal rate (subtracted)
 
-cut_slider = np.arange(11.5, 12.5, 0.1)
+cut_slider = np.arange(11.0, 12.5, 0.01)
 
 cut_results = []
 tot1pi_results = []
@@ -230,7 +234,8 @@ for cut in cut_slider: # Missing mass
 
     mm_cut = {'1pi': (resultsSIM['1pi']['mmnuc'] < cut), 
               '2pi': (resultsSIM['2pi']['mmnuc'] < cut),
-              'norad': (resultsSIM['norad']['mmnuc'] < cut)}
+              #'norad': (resultsSIM['norad']['mmnuc'] < cut)
+              }
     
     h_tot = {'1pi': np.sum(weights['1pi'][mm_cut['1pi']]),
              '2pi': np.sum(weights['2pi'][mm_cut['2pi']])}
@@ -274,8 +279,8 @@ tot1pi_results = np.array(tot1pi_results)
 tot2pi_results = np.array(tot2pi_results)
 contamination_results = np.array(contamination_results)
 
-contamination_mask = (contamination_results >= 0.040) & (contamination_results <= 0.060)
-plt.axvline(cut_results[contamination_mask], linestyle='--')
+#contamination_mask = (contamination_results >= 0.040) & (contamination_results <= 0.060)
+#plt.axvline(cut_results[contamination_mask], linestyle='--')
 cth.label(r'$Q^2 = 5.0$ $\mathrm{(GeV/c^2)}$')
 cth.savefig(f'figures/Q2={Q2}', f'MMr_contamination')
 

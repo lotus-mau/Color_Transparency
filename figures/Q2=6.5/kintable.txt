@@ -1,0 +1,21 @@
+
+=== Solution (chosen forward-most) ===
+
+Input:  Q2 = 6.50000 GeV^2, Ebeam = 10.70000 GeV 
+ t_target = -0.52700 GeV^2
+
+--->Computed W       = 2.493322 GeV
+--->Electron angle   = 21.432186 deg
+--->Scattered E'     = 4.392500 GeV
+--->theta_pi (lab)   = 13.509751 deg
+--->p_pi (lab)       = 6.025048 GeV/c
+--->k_pi (your formula) = 0.778376 GeV
+
+nu (q0)          = 6.307500 GeV, |q| = 6.803275 GeV
+p*_pi (CM)       = 1.064918 GeV/c
+t (found)        = -0.527000 GeV^2
+theta*_CM (deg)  = 0.769588 deg
+
+-------------------------------------
+
+Note: If you need more precision, reduce dE and/or increase Nscan in the theta* scanning function.
