@@ -279,20 +279,36 @@ def main(input):
     thetaStar = best['thetaStar']*180.0/PI
 
     # Print
-    print("=== Solution (chosen forward-most) ===")
-    print(f"Input:  Q2 = {Q2:.5f} GeV^2, Ebeam = {Ebeam:.5f} GeV, t_target = {t_target:.5f} GeV^2")
-    print(f"--->Computed W       = {W:.6f} GeV")
-    print(f"--->Electron angle   = {thetaE_deg:.6f} deg")
-    print(f"--->Scattered E'     = {Eprime:.6f} GeV")
-    print(f"--->theta_pi (lab)   = {theta_pi_lab_deg:.6f} deg")
-    print(f"--->p_pi (lab)       = {ppi_lab:.6f} GeV/c")
-    print(f"--->k_pi (your formula) = {kpi_formula:.6f} GeV")
-    print(f"nu (q0)          = {nu:.6f} GeV, |q| = {qmag:.6f} GeV")
-    print(f"p*_pi (CM)       = {pstar:.6f} GeV/c")
-    print(f"t (found)        = {t:.6f} GeV^2")
-    print(f"theta*_CM (deg)  = {thetaStar:.6f} deg")
-    print("-------------------------------------")
-    print("Note: If you need more precision, reduce dE and/or increase Nscan in the theta* scanning function.\n")
+    # print("\n=== Solution (chosen forward-most) ===")
+    # print(f"Input:  Q2 = {Q2:.5f} GeV^2, Ebeam = {Ebeam:.5f} GeV \n t_target = {t_target:.5f} GeV^2")
+    # print(f"\n--->Computed W       = {W:.6f} GeV")
+    # print(f"--->Electron angle   = {thetaE_deg:.6f} deg")
+    # print(f"--->Scattered E'     = {Eprime:.6f} GeV")
+    # print(f"--->theta_pi (lab)   = {theta_pi_lab_deg:.6f} deg")
+    # print(f"--->p_pi (lab)       = {ppi_lab:.6f} GeV/c")
+    # print(f"--->k_pi (your formula) = {kpi_formula:.6f} GeV \n")
+    # print(f"nu (q0)          = {nu:.6f} GeV, |q| = {qmag:.6f} GeV")
+    # print(f"p*_pi (CM)       = {pstar:.6f} GeV/c")
+    # print(f"t (found)        = {t:.6f} GeV^2")
+    # print(f"theta*_CM (deg)  = {thetaStar:.6f} deg")
+    # print("-------------------------------------\n")
+    # print("Note: If you need more precision, reduce dE and/or increase Nscan in the theta* scanning function.\n")
+
+    with open(f"figures/Q2={Q2}/kintable.txt", "w") as f:
+        f.write("=== Solution (chosen forward-most) ===\n")
+        f.write(f"\nInput:  Q2 = {Q2:.5f} GeV^2, Ebeam = {Ebeam:.5f} GeV \n t_target = {t_target:.5f} GeV^2\n")
+        f.write(f"\n--->Computed W       = {W:.6f} GeV\n")
+        f.write(f"--->Electron angle   = {thetaE_deg:.6f} deg\n")
+        f.write(f"--->Scattered E'     = {Eprime:.6f} GeV\n")
+        f.write(f"--->theta_pi (lab)   = {theta_pi_lab_deg:.6f} deg\n")
+        f.write(f"--->p_pi (lab)       = {ppi_lab:.6f} GeV/c\n")
+        f.write(f"--->k_pi (your formula) = {kpi_formula:.6f} GeV\n\n")
+        f.write(f"nu (q0)          = {nu:.6f} GeV, |q| = {qmag:.6f} GeV\n")
+        f.write(f"p*_pi (CM)       = {pstar:.6f} GeV/c\n")
+        f.write(f"t (found)        = {t:.6f} GeV^2\n")
+        f.write(f"theta*_CM (deg)  = {thetaStar:.6f} deg\n")
+        f.write("\n-------------------------------------\n\n")
+        f.write("Note: If you need more precision, reduce dE and/or increase Nscan in the theta* scanning function.\n")
 
     results = {"Q2": Q2, 
                "Ebeam": Ebeam, 
@@ -309,8 +325,6 @@ def main(input):
                "t": t, 
                "theta_star": thetaStar
                }
-    
-    print("Kinematic Calculations Process Finished\n")
 
     return results
 

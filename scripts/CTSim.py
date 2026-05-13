@@ -1,8 +1,5 @@
 import uproot
 import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
-import numpy as np
-import CTHelp as cth
 
 def main(file_root):
     plt.close('all')
@@ -53,8 +50,6 @@ def main(file_root):
             "Weight"    # Monte Carlo event weight => (cross section x acceptance)
             ]
     kin = {v: tree[v].array() for v in vars}
-
-    print("Simulation Process Finished\n")
 
     return kin
 

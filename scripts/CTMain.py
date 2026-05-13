@@ -2,6 +2,10 @@
 File to compile calculations.
 """
 
+import sys
+import time
+import threading 
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -10,10 +14,36 @@ import CTSim as cts
 import CTKin as ctk
 import CTKinTable as ctkt
 
+# sanity checks
+
+_running = True
+
+def heartbeat():
+    while _running:
+        print(".", end="", flush=True)
+        time.sleep(1)
+
+hb_thread = threading.Thread(target=heartbeat, daemon=True)
+hb_thread.start()
+
+t0 = time.time()
+
 # INPUTS
 
-Q2 = 6.5
-beam = 11.0
+if len(sys.argv) < 2:
+    print("Usage: python CTMain.py <Q2>")
+    print("Example: python CTMain.py 5")
+    sys.exit(1)
+
+Q2 = float(sys.argv[1])
+beam = 10.7
+
+q2tags = {
+    5.0: "q5",
+    6.5: "q6p5",
+    7.5: "q7p5",
+    8.5: "q8p5",
+}
 
 inputKT = [Q2,       
            beam,        # Ebeam
@@ -41,12 +71,21 @@ label_xb_t = (r'$x_b = 0.5$' '\n'
 
 # RESULTS DICTIONARY
 
-resultsSIM = {"1pi": cts.main("pionCT-sim/pion_q5_og.root"),
-              "2pi": cts.main("pionCT-sim/pion_q5_2pi.root"),
-              "norad": cts.main("pionCT-sim/pion_q5_norad.root")}
+resultsSIM = {
+    "1pi": cts.main(f"pionCT-sim/pion_{q2tags[Q2]}_og.root"),
+    "2pi": cts.main(f"pionCT-sim/pion_{q2tags[Q2]}_2pi.root"),
+    "norad": cts.main(f"pionCT-sim/pion_{q2tags[Q2]}_norad.root"),
+}
 
-resultsKT           = ctkt.main(inputKT)
-resultsK, masksK    = ctk.main(inputK)
+#%% Kinematic Table Calculations 
+tKT = time.time()
+resultsKT = ctkt.main(inputKT)
+print(f"CTKinTable finished: {time.time() - tKT:.2f} s")
+
+#%% Kinematic Phase Space Calculations
+tK = time.time()
+resultsK, masksK = ctk.main(inputK)
+print(f"CTKin finished: {time.time() - tK:.2f} s")
 
 # KIN PLOTTING
 
@@ -73,6 +112,7 @@ plotH = [("Mm", 100, "physical")]
 plot2H = [("Mm", "Pm", 100, "physical"),
           ("Mm", "Q2", 100, "physical")]
 
+tPS = time.time()
 for xkey, ykey, zkey, mask in plotPS:
 
     fig, _ = plt.subplots()
@@ -81,7 +121,9 @@ for xkey, ykey, zkey, mask in plotPS:
     cth.format(cth.labels[xkey], cth.labels[ykey], cth.labels[zkey],
                 fr'Phase Space for $E_b=$ {Ebeam_name} GeV')
     cth.savefig(f'figures/Q2={Q2}', f'PS_{xkey}_{ykey}_{mask}')
+print(f"PS plots created: {time.time() - tPS:.2f} s")
 
+tH = time.time()
 for key, binsize, mask in plotH:
 
     plt.figure()
@@ -90,7 +132,9 @@ for key, binsize, mask in plotH:
     cth.format(cth.labels[key], ylabel='Counts', colorbar=None, title=
             fr'Counts Graphs for $E_b=$ {Ebeam_name} GeV')
     cth.savefig(f'figures/Q2={Q2}', f'histo_{key}_{mask}')
+print(f"Histograms created: {time.time() - tH:.2f} s")
 
+t2H = time.time()
 for xkey, ykey, binsize, mask in plot2H:
 
     plt.figure()
@@ -99,9 +143,11 @@ for xkey, ykey, binsize, mask in plot2H:
     cth.format(cth.labels[xkey], cth.labels[ykey], colorbar=None, title=
                 fr'Counts Graphs for $E_b=$ {Ebeam_name} GeV')
     cth.savefig(f'figures/Q2={Q2}', f'histo2D_{xkey}_{ykey}_{mask}')
+print(f"2D Histograms created: {time.time() - t2H:.2f} s")
     
 # SIM PLOTTING
 
+# coefficients
 weights = {"1pi": resultsSIM['1pi']['Weight'] * cth.normfac['1pi'] / cth.ngen,
            "2pi": resultsSIM['2pi']['Weight'] * cth.normfac['2pi'] / cth.ngen,
            "norad": resultsSIM['norad']['Weight'] * cth.normfac['norad'] / cth.ngen}
@@ -116,8 +162,7 @@ weights_lum = {"1pi": weights_rate['1pi'] * cth.luminosity['1pi'],
                "2pi": weights_rate['2pi'] * cth.luminosity['2pi'],
                "norad": weights_rate['norad'] * cth.luminosity['norad']}
 
-print('Weights Evaluated\n')
-
+tSIM = time.time()
 plt.figure()
 for key in resultsSIM:
     cth.hist(resultsSIM[key]['mmnuc'], 100, weights_rate[key], mask=None, type='step')
@@ -150,7 +195,7 @@ cth.hist(resultsSIM['2pi']['mmnuc'], 100, weights_rate['2pi'], mask=None, type='
 cth.format(cth.labels['mmnuc'], cth.labels['Counts_s'], colorbar=None, title=
            fr'Missing Mass Rates Graphs for 1pi, 2pi, and norad Processes')
 
-print("Plots Created\n")
+print(f"SIM plots created: {time.time() - tSIM:.2f} s")
 
 # plot:
 
@@ -206,12 +251,12 @@ for cut in cut_slider: # Missing mass
 #     print(f'{cut_results[i]:.1f} | {tot1pi_results[i]:.1f}      | {tot2pi_results[i]:.3f}     | {contamination_results[i]:.6f}')
 # print('')
 
-with open(f"figures/Q2={Q2}/contamination.txt", "a") as f:
-        header = f"\n ------ CONTAMINATION RESULTS for Q2 = {Q2} ------"
+with open(f"figures/Q2={Q2}/contamination.txt", "w") as f:
+        header = f"\n ----- CONTAMINATION RESULTS for Q2 = {Q2} -----"
         columns = f"\n{'Cut':>5} |{'1pi Total':>10} |{'2pi Total':>10} |{'Contamination':>14}"
 
-        print(header)
-        print(columns)
+        #print(header)
+        #print(columns)
         f.write(header + "\n")
         f.write(columns + "\n")
 
@@ -219,10 +264,10 @@ with open(f"figures/Q2={Q2}/contamination.txt", "a") as f:
             cut_results, tot1pi_results, tot2pi_results, contamination_results
         ):
             line = f"{cut:5.1f} |{tot1:10.1f} |{tot2:10.3f} |{contam:14.6f}"
-            print(line)
+            #print(line)
             f.write(line + "\n")
 
-        print()
+        #print()
         f.write("\n")
 
 cut_results = np.array(cut_results)
@@ -235,4 +280,9 @@ plt.axvline(cut_results[contamination_mask], linestyle='--')
 cth.label(r'$Q^2 = 5.0$ $\mathrm{(GeV/c^2)}$')
 cth.savefig(f'figures/Q2={Q2}', f'MMr_contamination')
 
-plt.show()
+_running = False
+print(f"Main runtime: {time.time()-t0:.2f} s\n")
+
+if __name__ == "__main__":
+
+    Q2 = 5.0

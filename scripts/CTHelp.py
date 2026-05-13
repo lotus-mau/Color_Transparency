@@ -187,5 +187,3 @@ labels = {
     "Counts_mC": r"$Counts/mC$",
     "Counts_s":  r"$Counts/s$"
 }
-
-print("\nHelper Callback/Update Finished\n")
