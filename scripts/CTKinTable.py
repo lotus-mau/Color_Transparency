@@ -295,7 +295,7 @@ def main(input):
     # print("Note: If you need more precision, reduce dE and/or increase Nscan in the theta* scanning function.\n")
 
     with open(f"figures/Q2={Q2}/kintable.txt", "w") as f:
-        f.write("=== Solution (chosen forward-most) ===\n")
+        f.write("\n=== Solution (chosen forward-most) ===\n")
         f.write(f"\nInput:  Q2 = {Q2:.5f} GeV^2, Ebeam = {Ebeam:.5f} GeV \n t_target = {t_target:.5f} GeV^2\n")
         f.write(f"\n--->Computed W       = {W:.6f} GeV\n")
         f.write(f"--->Electron angle   = {thetaE_deg:.6f} deg\n")

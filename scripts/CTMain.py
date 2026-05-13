@@ -31,8 +31,7 @@ t0 = time.time()
 # INPUTS
 
 if len(sys.argv) < 2:
-    print("Usage: python CTMain.py <Q2>")
-    print("Example: python CTMain.py 5")
+    print("Usage: python CTMain.py <Q2:float>")
     sys.exit(1)
 
 Q2 = float(sys.argv[1])
@@ -282,7 +281,3 @@ cth.savefig(f'figures/Q2={Q2}', f'MMr_contamination')
 
 _running = False
 print(f"Main runtime: {time.time()-t0:.2f} s\n")
-
-if __name__ == "__main__":
-
-    Q2 = 5.0
