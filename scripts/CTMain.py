@@ -37,20 +37,13 @@ if len(sys.argv) < 2:
 Q2 = float(sys.argv[1])
 beam = 10.7
 
-q2tags = {
-    5.0: "q5",
-    6.5: "q6p5",
-    7.5: "q7p5",
-    8.5: "q8p5",
-}
-
 inputKT = [Q2,       
            beam,        # Ebeam
            -0.527       # t_target
            ]
 
 inputK = [np.array([beam]),                     # E_beam       
-          np.arange(Q2-0.5, Q2+0.5, 0.01),  # Q2 range
+          np.arange(Q2-0.5, Q2+0.5, 0.01),      # Q2 range
           cth.A,                                # A
           cth.Z                                 # Z
           ]
@@ -71,9 +64,9 @@ label_xb_t = (r'$x_b = 0.5$' '\n'
 # RESULTS DICTIONARY
 
 resultsSIM = {
-    "1pi": cts.main(f"pionCT-sim/pion_{q2tags[Q2]}_og.root"),
-    "2pi": cts.main(f"pionCT-sim/pion_{q2tags[Q2]}_multpi.root"),
-    #"norad": cts.main(f"pionCT-sim/pion_{q2tags[Q2]}_multpi.root"),
+    "1pi": cts.main(f"pionCT-sim/pion_{cth.q2tags[Q2]}_og.root"),
+    "2pi": cts.main(f"pionCT-sim/pion_{cth.q2tags[Q2]}_multipi.root"),
+    #"norad": cts.main(f"pionCT-sim/pion_{cth.q2tags[Q2]}_multipi.root"),
 }
 
 #%% Kinematic Table Calculations 
@@ -86,7 +79,7 @@ tK = time.time()
 resultsK, masksK = ctk.main(inputK)
 print(f"CTKin finished: {time.time() - tK:.2f} s")
 
-# KIN PLOTTING
+#%% KIN PLOTTING
 
 # (xkey, ykey, zkey, mask)
 plotPS = [("xb", "Q2", "theta_e", "detection"),
@@ -144,12 +137,12 @@ for xkey, ykey, binsize, mask in plot2H:
     cth.savefig(f'figures/Q2={Q2}', f'histo2D_{xkey}_{ykey}_{mask}')
 print(f"2D Histograms created: {time.time() - t2H:.2f} s")
     
-# SIM PLOTTING
+#%% SIM PLOTTING
 
 # coefficients
-weights = {"1pi": resultsSIM['1pi']['Weight'] * cth.normfac['1pi'] / cth.ngen,
-           "2pi": resultsSIM['2pi']['Weight'] * cth.normfac['2pi'] / cth.ngen,
-           #"norad": resultsSIM['norad']['Weight'] * cth.normfac['norad'] / cth.ngen
+weights = {"1pi": resultsSIM['1pi']['Weight'] * cth.normfac[cth.q2tags[Q2]]['1pi'] / cth.ngen,
+           "2pi": resultsSIM['2pi']['Weight'] * cth.normfac[cth.q2tags[Q2]]['2pi'] / cth.ngen,
+           #"norad": resultsSIM['norad']['Weight'] * cth.normfac[cth.q2tags[Q2]]['norad'] / cth.ngen
            }
 
 weight_norm = 0.243
@@ -159,9 +152,9 @@ weights_rate = {"1pi": weights['1pi'] * cth.current,
                 #"norad": weights['norad'] * cth.current * weight_norm
                 }
 
-weights_lum = {"1pi": weights_rate['1pi'] * cth.luminosity['1pi'],
-               "2pi": weights_rate['2pi'] * cth.luminosity['2pi'],
-               #"norad": weights_rate['norad'] * cth.luminosity['norad']
+weights_lum = {"1pi": weights_rate['1pi'] * cth.luminosity(Q2)['1pi'],
+               "2pi": weights_rate['2pi'] * cth.luminosity(Q2)['2pi'],
+               #"norad": weights_rate['norad'] * cth.luminosity(Q2)['norad']
                }
 
 tSIM = time.time()

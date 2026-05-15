@@ -23,22 +23,62 @@ m_pi = 0.139570611      # charged pion mass
 A = 12
 Z = 6
 
+q2tags = {
+    5.0: 'q5',
+    6.5: 'q6p5',
+    7.5: 'q7p5',
+    8.5: 'q8p5'
+}
+
 # SPECS (figure out later how to extract from hist file)
 
 ngen = 10000        # number of generated events
 
-# from hist file, yet to know how its calculated
-normfac = {"1pi": 0.538378E+07,
-           "2pi": 0.980948E+06,
-           "norad": 0.144393E+08} 
-# cm
-length = {"1pi": 0.294089,
-          "2pi": 0.294089,
-          "norad": 0.995858}
-# g/cm^3
-density = {"1pi": 0.2267e1,
-           "2pi": 0.2267e1,
-           "norad": 0.169e1}
+normfac = { # from hist file
+            "q5":   {"1pi": 0.144897E+07,
+                     "2pi": 0.144897E+07,
+                     "norad": 0.144393E+08},
+            "q6p5": {"1pi": 0.117848E+08,
+                     "2pi": 0.117848E+08,
+                     "norad": 1},
+            "q7p5": {"1pi": 0.966871E+07,
+                     "2pi": 0.966871E+07,
+                     "norad": 1},
+            "q8p5": {"1pi": 0.799880E+07,
+                     "2pi": 0.799880E+07,
+                     "norad": 1}
+            }
+
+length = {  # cm
+            "q5":   {"1pi": 0.995858E+00,
+                     "2pi": 0.995858E+00,
+                     "norad": 0.995858E+00},
+            "q6p5": {"1pi": 0.995858E+00,
+                     "2pi": 0.995858E+00,
+                     "norad": 0.995858E+00},
+            "q7p5": {"1pi": 0.995858E+00,
+                     "2pi": 0.995858E+00,
+                     "norad": 0.995858E+00},
+            "q8p5": {"1pi": 0.995858E+00,
+                     "2pi": 0.995858E+00,
+                     "norad": 0.995858E+00}
+            }
+
+density = { # g/cm^3
+            "q5":   {"1pi": 0.169000E+01,
+                     "2pi": 0.169000E+01,
+                     "norad": 0.169000E+01},
+            "q6p5": {"1pi": 0.169000E+01,
+                     "2pi": 0.169000E+01,
+                     "norad": 0.169000E+01},
+            "q7p5": {"1pi": 0.169000E+01,
+                     "2pi": 0.169000E+01,
+                     "norad": 0.169000E+01},
+            "q8p5": {"1pi": 0.169000E+01,
+                     "2pi": 0.169000E+01,
+                     "norad": 0.169000E+01}
+            }
+
 
 current = 40 / 1000     # muA -> mA : mC/s
 
@@ -128,9 +168,12 @@ def calclum(current, density, length, A):
 
     return lum_B * lum_T
 
-luminosity = {"1pi": calclum(current, density['1pi'], length['1pi'], A),
-              "2pi": calclum(current, density['2pi'], length['2pi'], A),
-              "norad": calclum(current, density['norad'], length['norad'], A)}
+def luminosity(q2):
+    return {
+            "1pi": calclum(current, density[q2tags[q2]]['1pi'], length[q2tags[q2]]['1pi'], A),
+            "2pi": calclum(current, density[q2tags[q2]]['2pi'], length[q2tags[q2]]['2pi'], A),
+            "norad": calclum(current, density[q2tags[q2]]['norad'], length[q2tags[q2]]['norad'], A)
+            }
 
 ## USEFUL VARIABLES
 

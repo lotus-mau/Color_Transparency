@@ -43,7 +43,9 @@ def XBjorken(Ee, Eep, theta): # elastic (jlab)
 
 def main(input):
 
-    E_beam, Q2, A, Z = input
+    E_beam, q2, A, Z = input
+
+    Q2 = q2[0] + 0.5
 
     E_prime = np.arange(0.3, E_beam[-1], 0.01)
 
@@ -128,7 +130,7 @@ def main(input):
 
     for Ebeam in E_beam:
         #print(Ebeam)
-        for Q2_val in Q2:
+        for Q2_val in q2:
             #print(Q2_val)
             for Eprime in E_prime:
                 #print(Eprime)
@@ -166,7 +168,7 @@ def main(input):
                     continue
 
     df = pd.DataFrame(results, columns=["Q2", "Bjorken X", "t", "Ebeam", "Theta_e", "Eprime", "Theta_p", "p_pi", "k_pi", "W", "Em", "Pm", "Mm"])
-    df.to_csv("t_scan_results.csv", index=False, float_format="%.6f")
+    df.to_csv(f"figures/Q2={Q2}/t_scan_results.csv", index=False, float_format="%.6f")
     print("Saved results to t_scan_results.csv with", len(df), "rows.\n")
 
     Ebeam_results = np.array(Ebeam_results)
@@ -225,8 +227,8 @@ if __name__ == "__main__":
 
     # Carbon 12 target inputs 
 
-    input = [np.array([11.0]),              # E_beam       
-             np.arange(4.0, 5.0, 0.01),     # Q2
+    input = [np.array([10.7]),              # E_beam       
+             np.arange(4.5, 5.5, 0.01),     # Q2
              12,                            # A
              6                              # Z
              ]
