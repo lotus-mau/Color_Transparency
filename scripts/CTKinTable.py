@@ -5,8 +5,13 @@ Created on Tue Oct 14 17:17:59 2025
 @author: Lotus
 """
 
-import numpy as np
+import sys
+import time
 import math
+
+import numpy as np
+
+import CTHelp as cth
 
 # Physical constants (GeV units)
 M_p  = 0.9382720813   # proton mass
@@ -186,6 +191,10 @@ def main(input):
     """
     Q2, Ebeam, t_target = input
 
+    targets = ['C', 'H']
+
+    tKT = time.time()
+
     # scanning parameters (tune as needed)
     Emin = 0.05
     Emax = Ebeam - 0.05
@@ -278,37 +287,22 @@ def main(input):
     t = best['t']
     thetaStar = best['thetaStar']*180.0/PI
 
-    # Print
-    # print("\n=== Solution (chosen forward-most) ===")
-    # print(f"Input:  Q2 = {Q2:.5f} GeV^2, Ebeam = {Ebeam:.5f} GeV \n t_target = {t_target:.5f} GeV^2")
-    # print(f"\n--->Computed W       = {W:.6f} GeV")
-    # print(f"--->Electron angle   = {thetaE_deg:.6f} deg")
-    # print(f"--->Scattered E'     = {Eprime:.6f} GeV")
-    # print(f"--->theta_pi (lab)   = {theta_pi_lab_deg:.6f} deg")
-    # print(f"--->p_pi (lab)       = {ppi_lab:.6f} GeV/c")
-    # print(f"--->k_pi (your formula) = {kpi_formula:.6f} GeV \n")
-    # print(f"nu (q0)          = {nu:.6f} GeV, |q| = {qmag:.6f} GeV")
-    # print(f"p*_pi (CM)       = {pstar:.6f} GeV/c")
-    # print(f"t (found)        = {t:.6f} GeV^2")
-    # print(f"theta*_CM (deg)  = {thetaStar:.6f} deg")
-    # print("-------------------------------------\n")
-    # print("Note: If you need more precision, reduce dE and/or increase Nscan in the theta* scanning function.\n")
-
-    with open(f"figures/Q2={Q2}/kintable.txt", "w") as f:
-        f.write("\n=== Solution (chosen forward-most) ===\n")
-        f.write(f"\nInput:  Q2 = {Q2:.5f} GeV^2, Ebeam = {Ebeam:.5f} GeV \n t_target = {t_target:.5f} GeV^2\n")
-        f.write(f"\n--->Computed W       = {W:.6f} GeV\n")
-        f.write(f"--->Electron angle   = {thetaE_deg:.6f} deg\n")
-        f.write(f"--->Scattered E'     = {Eprime:.6f} GeV\n")
-        f.write(f"--->theta_pi (lab)   = {theta_pi_lab_deg:.6f} deg\n")
-        f.write(f"--->p_pi (lab)       = {ppi_lab:.6f} GeV/c\n")
-        f.write(f"--->k_pi (your formula) = {kpi_formula:.6f} GeV\n\n")
-        f.write(f"nu (q0)          = {nu:.6f} GeV, |q| = {qmag:.6f} GeV\n")
-        f.write(f"p*_pi (CM)       = {pstar:.6f} GeV/c\n")
-        f.write(f"t (found)        = {t:.6f} GeV^2\n")
-        f.write(f"theta*_CM (deg)  = {thetaStar:.6f} deg\n")
-        f.write("\n-------------------------------------\n\n")
-        f.write("Note: If you need more precision, reduce dE and/or increase Nscan in the theta* scanning function.\n")
+    for target in targets:
+        with open(f"figures_{target}/Q2={Q2}/kintable.txt", "w") as f:
+            f.write("\n=== Solution (chosen forward-most) ===\n")
+            f.write(f"\nInput:  Q2 = {Q2:.5f} GeV^2, Ebeam = {Ebeam:.5f} GeV \n t_target = {t_target:.5f} GeV^2\n")
+            f.write(f"\n--->Computed W       = {W:.6f} GeV\n")
+            f.write(f"--->Electron angle   = {thetaE_deg:.6f} deg\n")
+            f.write(f"--->Scattered E'     = {Eprime:.6f} GeV\n")
+            f.write(f"--->theta_pi (lab)   = {theta_pi_lab_deg:.6f} deg\n")
+            f.write(f"--->p_pi (lab)       = {ppi_lab:.6f} GeV/c\n")
+            f.write(f"--->k_pi (your formula) = {kpi_formula:.6f} GeV\n\n")
+            f.write(f"nu (q0)          = {nu:.6f} GeV, |q| = {qmag:.6f} GeV\n")
+            f.write(f"p*_pi (CM)       = {pstar:.6f} GeV/c\n")
+            f.write(f"t (found)        = {t:.6f} GeV^2\n")
+            f.write(f"theta*_CM (deg)  = {thetaStar:.6f} deg\n")
+            f.write("\n-------------------------------------\n\n")
+            f.write("Note: If you need more precision, reduce dE and/or increase Nscan in the theta* scanning function.\n")
 
     results = {"Q2": Q2, 
                "Ebeam": Ebeam, 
@@ -325,6 +319,8 @@ def main(input):
                "t": t, 
                "theta_star": thetaStar
                }
+    
+    print(f"\n CTKinTable finished: {time.time() - tKT:.2f} s\n")
 
     return results
 
@@ -332,8 +328,20 @@ def main(input):
 if __name__ == "__main__":
 
     input = [5.0,       # Q2
-             11.0,      # Ebeam
+             10.7,      # Ebeam
              -0.527     # t_target
-             ]
+    ]
+    empty = False
+
+    if len(sys.argv) < 3:
+        print("\nUsage:")
+        print("python CTMain.py <Q2> <target> <t>\n")
+        empty = True
+
+    if not empty:
+        Q2 = round(float(sys.argv[1]), 1)
+        target = sys.argv[2]
+        t = sys.argv[3]
+        input = [Q2, target, t]
 
     main(input)

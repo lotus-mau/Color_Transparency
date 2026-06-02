@@ -1,0 +1,4 @@
+scp "lotusmau@ftp.jlab.org:~lotusmau/simc_gfortran/worksim/pion_q_.root" .
+
+scp "lotusmau@ftp.jlab.org:~lotusmau/simc_gfortran/outfiles/pion_q_.hist" .
+

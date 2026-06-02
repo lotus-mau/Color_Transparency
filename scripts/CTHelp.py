@@ -20,9 +20,6 @@ m_p  = 0.9382720813     # proton mass
 m_n = 0.93956563        # neutron mass
 m_pi = 0.139570611      # charged pion mass
 
-A = 12
-Z = 6
-
 q2tags = {
     5.0: 'q5',
     6.5: 'q6p5',
@@ -30,7 +27,7 @@ q2tags = {
     8.5: 'q8p5'
 }
 
-# SPECS (figure out later how to extract from hist file)
+# SPECS (figure out later how to extract from hist file) (ALSO add HYDROGEN / CARBON distinction)
 
 ngen = 10000        # number of generated events
 
@@ -48,6 +45,8 @@ normfac = { # from hist file
                      "2pi": 0.324799E+08 * 0.1,
                      "norad": 1}
             }
+
+# ADD ntried = {} to use in weight_lum to get correct rates. -> just divide out ntried.
 
 length = {  # cm
             "q5":   {"1pi": 0.995858E+00,
@@ -168,12 +167,28 @@ def calclum(current, density, length, A):
 
     return lum_B * lum_T
 
-def luminosity(q2):
+def luminosity(q2, A):
     return {
             "1pi": calclum(current, density[q2tags[q2]]['1pi'], length[q2tags[q2]]['1pi'], A),
             "2pi": calclum(current, density[q2tags[q2]]['2pi'], length[q2tags[q2]]['2pi'], A),
             "norad": calclum(current, density[q2tags[q2]]['norad'], length[q2tags[q2]]['norad'], A)
             }
+
+def getTarget(target):
+
+    if target == 'C':
+
+        A = 12; Z = 6
+    
+    elif target == 'H':
+        
+        A = 1; Z = 1
+
+    else:
+
+        print("\nNot a valid target. \n")
+
+    return A, Z
 
 ## USEFUL VARIABLES
 
@@ -219,7 +234,10 @@ labels = {
     "thetapq":  r"$\theta_{pq}\ \mathrm{(rad)}$",
     "phipq":    r"$\phi_{pq}\ \mathrm{(rad)}$",
     "Mm":       r"$M_{\mathrm{m}}\ \mathrm{(GeV)}$",
+    "MMa":      r"$M_{\mathrm{m}}^{\mathrm{A}}\ \mathrm{(GeV)}$",
     "mmnuc":    r"$M_{\mathrm{m}}^{\mathrm{nuc}}\ \mathrm{(GeV)}$",
+    "missmass": r"$M_{\mathrm{m}}\ \mathrm{(GeV)}$",
+    "Mhadron":  r"$M_{\mathrm{had}}\ \mathrm{(GeV)}$",
     "phad":     r"$p_{\mathrm{had}}\ \mathrm{(GeV/c)}$",
     "t":        r"$t\ \mathrm{(GeV^2)}$",
     "pmpar":    r"$p_{m}^{\parallel}\ \mathrm{(GeV/c)}$",
