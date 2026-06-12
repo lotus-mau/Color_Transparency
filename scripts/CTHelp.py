@@ -5,6 +5,7 @@ that are helpful when conducting research for CT
 primarily uses matplotlib.pyplot for plotting functions
 """
 
+import re
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -20,66 +21,67 @@ m_p  = 0.9382720813     # proton mass
 m_n = 0.93956563        # neutron mass
 m_pi = 0.139570611      # charged pion mass
 
-q2tags = {
-    5.0: 'q5',
-    6.5: 'q6p5',
-    7.5: 'q7p5',
-    8.5: 'q8p5'
-}
+q2tags = ['q5', 'q6p5', 'q7p5', 'q8p5']
+q2val_tags = {5.0: q2tags[0], 6.5: q2tags[1], 7.5: q2tags[2], 8.5: q2tags[3]}
 
-# SPECS (figure out later how to extract from hist file) (ALSO add HYDROGEN / CARBON distinction)
+settings = ['1pi', '2pi']
 
-ngen = 10000        # number of generated events
+targets = ['C', 'H']
 
-normfac = { # from hist file
-            "q5":   {"1pi": 0.129622E+08,
-                     "2pi": 0.393182E+08 * 0.1,
-                     "norad": 1},
-            "q6p5": {"1pi": 0.117848E+08,
-                     "2pi": 0.385311E+08 * 0.1,
-                     "norad": 1},
-            "q7p5": {"1pi": 0.966871E+07,
-                     "2pi": 0.361968E+08 * 0.1,
-                     "norad": 1},
-            "q8p5": {"1pi": 0.799880E+07,
-                     "2pi": 0.324799E+08 * 0.1,
-                     "norad": 1}
-            }
-
-# ADD ntried = {} to use in weight_lum to get correct rates. -> just divide out ntried.
-
-length = {  # cm
-            "q5":   {"1pi": 0.995858E+00,
-                     "2pi": 0.995858E+00,
-                     "norad": 0.995858E+00},
-            "q6p5": {"1pi": 0.995858E+00,
-                     "2pi": 0.995858E+00,
-                     "norad": 0.995858E+00},
-            "q7p5": {"1pi": 0.995858E+00,
-                     "2pi": 0.995858E+00,
-                     "norad": 0.995858E+00},
-            "q8p5": {"1pi": 0.995858E+00,
-                     "2pi": 0.995858E+00,
-                     "norad": 0.995858E+00}
-            }
-
-density = { # g/cm^3
-            "q5":   {"1pi": 0.169000E+01,
-                     "2pi": 0.169000E+01,
-                     "norad": 0.169000E+01},
-            "q6p5": {"1pi": 0.169000E+01,
-                     "2pi": 0.169000E+01,
-                     "norad": 0.169000E+01},
-            "q7p5": {"1pi": 0.169000E+01,
-                     "2pi": 0.169000E+01,
-                     "norad": 0.169000E+01},
-            "q8p5": {"1pi": 0.169000E+01,
-                     "2pi": 0.169000E+01,
-                     "norad": 0.169000E+01}
-            }
-
+ngen = 10000            # number of generated events
 
 current = 40 / 1000     # muA -> mA : mC/s
+
+def parse_hist(q2tag, key, target):
+
+    if key == '1pi':
+
+        setting = ''
+
+    elif key == '2pi':
+
+        setting = '_multipi'
+
+    elif key == 'norad':
+
+        setting = '_norad'
+
+    else:
+        
+        print('\nNot a valid setting.\n')
+
+    filename = f'pionCT-simc/pion_{q2tag}_{target}{setting}.hist'
+
+    with open(filename) as f:
+        text = f.read()
+
+    def get_value(variable):
+        match = re.search(fr"{variable}\s*=\s*([-\d.E+]+)", text)
+        return float(match.group(1)) if match else None
+    
+    variables = ['Ntried',          # number of events tried before reaching ngen successes
+                 'normfac',         # normalization factor calculated using luminosity/ntried*ngen
+                 'length',          # length of target
+                 'rho',             # density of target
+                 'mass'             # target mass in GeV
+                 ]
+    
+    parsed = {variable: get_value(variable) for variable in variables}
+
+    match1 = re.search(
+        r"mass\s*=\s*([-+]?\d*\.?\d+(?:[Ee][-+]?\d+)?)\s*MeV",
+        text
+    )
+
+    if match1:
+        parsed['mass'] = float(match1.group(1)) / 1000.0            # MeV to GeV : /1000.
+    
+    return parsed
+
+specs = {tag: {key: {target: parse_hist(tag, key, target)
+                     for target in targets}
+               for key in settings}
+         for tag in q2tags}
 
 ## HELPERS
 
@@ -158,22 +160,6 @@ def savefig(folder, name):
 
     plt.savefig(path, dpi=300, bbox_inches='tight')
 
-# DEFINITIONS
-
-def calclum(current, density, length, A):
-
-    lum_B = current / q_e                     # number of electrons per second
-    lum_T = density * length / A * N_A        # number of particles (nucleon per nucleus) in unit area
-
-    return lum_B * lum_T
-
-def luminosity(q2, A):
-    return {
-            "1pi": calclum(current, density[q2tags[q2]]['1pi'], length[q2tags[q2]]['1pi'], A),
-            "2pi": calclum(current, density[q2tags[q2]]['2pi'], length[q2tags[q2]]['2pi'], A),
-            "norad": calclum(current, density[q2tags[q2]]['norad'], length[q2tags[q2]]['norad'], A)
-            }
-
 def getTarget(target):
 
     if target == 'C':
@@ -190,32 +176,84 @@ def getTarget(target):
 
     return A, Z
 
+# DEFINITIONS
+
+def calclum(current, density, length, A):
+
+    lum_B = current / q_e                     # number of electrons per second
+    lum_T = density * length / A * N_A        # number of particles (nucleon per nucleus) in unit area
+
+    return lum_B * lum_T
+
+def luminosity(q2, target):
+
+    A, _ = getTarget(target)
+
+    return {key: calclum(current, 
+                         specs[q2val_tags[q2]][key][target]['rho'], 
+                         specs[q2val_tags[q2]][key][target]['length'], 
+                         A) 
+            for key in settings}
+
 ## USEFUL VARIABLES
 
 vars = [
-    "q",        # magnitude of q vector 
-    "nu",       # Energy transfer := E - E'
-    "Q2",       # virtual photon momentum transfer
-    "W",        # invariant rest mass of system
-    "epsilon",  # ?
-    "Eprime",   # scattered electron energy
-    "theta_e",  # scattered electron angle
-    "Em",       # reconstructed missing energy
-    "Pm",       # reconstructed missing momentum
-    "k_pi",     # pion 3-momentum
-    "p_pi",     # pion 4-momentum
-    "theta_pi", # pion angle
-    "thetapq",  # angle between pion and q
-    "phipq",    # angle between pion and q atomic planes
-    "mmnuc",    # reconstructed missing nuclear mass
-    "phad",     # momentum of hadronic system ?
-    "t",        # mandelstam t, momentum transfer of hadronic system
-    "pmpar",    # ?
-    "pmper",    # ?
-    "pmoop",    # ?
-    "radphot",  # ?
-    "pfermi"    # fermi momentum ?
-]
+        #'h10',          # ?
+        'hsdelta',      # ?
+        'hsyptar',      # ?
+        'hsxptar',      # ?
+        'hsytar',       # ?
+        'hsxfp',        # ?
+        'hsxpfp',       # ?
+        'hsyfp',        # ?
+        'hsypfp',       # ?
+        'hsdeltai',     # ?
+        'hsyptari',     # ?
+        'hsxptari',     # ?
+        'hsytari',      # ?
+        'ssdelta',      # ?
+        'ssyptar',      # ?
+        'ssxptar',      # ?
+        'ssytar',       # ?
+        'ssxfp',        # ?
+        'ssxpfp',       # ?
+        'ssyfp',        # ?
+        'ssypfp',       # ?
+        'ssdeltai',     # ?
+        'ssyptari',     # ?
+        'ssxptari',     # ?
+        'ssytari',      # ?
+        'q',            # magnitude of q vector 
+        'nu',           # Energy transfer := E - E'
+        'Q2',           # virtual photon momentum transfer
+        'W',            # invariant rest mass of system
+        'epsilon',      # ?
+        'Em',           # reconstructed missing energy
+        'Pm',           # reconstructed missing momentum
+        'thetapq',      # angle between pion and q
+        'phipq',        # angle between pion and q atomic planes
+        'missmass',     # missing mass (using M = M_p in mm equation)
+        'mmnuc',        # reconstructed missing nuclear mass (using M = M_A)
+        'phad',         # momentum of hadron (maybe total hadron momentum?)
+        't',            # mandelstam t, momentum transfer of hadronic system
+        'pmpar',        # ?
+        'pmper',        # ?
+        'pmoop',        # ?
+        'fry',          # ?
+        'radphot',      # ?
+        'pfermi',       # fermi momentum
+        'siglab',       # ?
+        'sigcm',        # ?
+        'Weight',       # Monte Carlo event weight => (cross section x acceptance)
+        'decdist',      # ?
+        'Mhadron',      # ?
+        'pdotqhat',     # ?
+        'Q2i',          # ?
+        'Wi',           # ?
+        'ti',           # ?
+        'phipqi',       # ?
+        'dpimm'         # missing mass of second pion and nucleus
+    ]
 
 labels = {
     "q":        r"$|\vec{q}|\ \mathrm{(GeV/c)}$",
@@ -236,6 +274,7 @@ labels = {
     "Mm":       r"$M_{\mathrm{m}}\ \mathrm{(GeV)}$",
     "MMa":      r"$M_{\mathrm{m}}^{\mathrm{A}}\ \mathrm{(GeV)}$",
     "mmnuc":    r"$M_{\mathrm{m}}^{\mathrm{nuc}}\ \mathrm{(GeV)}$",
+    "dpimm":    r"$M_{\mathrm{m}}^{\mathrm{nuc}}\ \mathrm{(GeV)}$",
     "missmass": r"$M_{\mathrm{m}}\ \mathrm{(GeV)}$",
     "Mhadron":  r"$M_{\mathrm{had}}\ \mathrm{(GeV)}$",
     "phad":     r"$p_{\mathrm{had}}\ \mathrm{(GeV/c)}$",

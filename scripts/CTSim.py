@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Simulation Code for Loading and Processing files.
+Simulation Code: for loading and processing SIMC files,
+then analyze the histograms -> contamination from dpi background
 
 @author: Lotus
 """
@@ -21,6 +22,7 @@ def load(file_root):
     # Get the tree
     tree = file["h10"]
 
+    """
     # Read the branch data
 
     # HMS variables you can read: 
@@ -37,68 +39,10 @@ def load(file_root):
 
     # Note that the weight will give you units of counts/mC
 
-    # you can plot any of these variables by doing something like the following:  
+    # you can plot any of these variables by doing something like the following:
+    """
 
-    vars = [
-        #'h10',          # ?
-        'hsdelta',      # ?
-        'hsyptar',      # ?
-        'hsxptar',      # ?
-        'hsytar',       # ?
-        'hsxfp',        # ?
-        'hsxpfp',       # ?
-        'hsyfp',        # ?
-        'hsypfp',       # ?
-        'hsdeltai',     # ?
-        'hsyptari',     # ?
-        'hsxptari',     # ?
-        'hsytari',      # ?
-        'ssdelta',      # ?
-        'ssyptar',      # ?
-        'ssxptar',      # ?
-        'ssytar',       # ?
-        'ssxfp',        # ?
-        'ssxpfp',       # ?
-        'ssyfp',        # ?
-        'ssypfp',       # ?
-        'ssdeltai',     # ?
-        'ssyptari',     # ?
-        'ssxptari',     # ?
-        'ssytari',      # ?
-        'q',            # magnitude of q vector 
-        'nu',           # Energy transfer := E - E'
-        'Q2',           # virtual photon momentum transfer
-        'W',            # invariant rest mass of system
-        'epsilon',      # ?
-        'Em',           # reconstructed missing energy
-        'Pm',           # reconstructed missing momentum
-        'thetapq',      # angle between pion and q
-        'phipq',        # angle between pion and q atomic planes
-        'missmass',     # missing mass (using M = M_p in mm equation)
-        'mmnuc',        # reconstructed missing nuclear mass (using M = M_A)
-        'phad',         # momentum of hadron (maybe total hadron momentum?)
-        't',            # mandelstam t, momentum transfer of hadronic system
-        'pmpar',        # ?
-        'pmper',        # ?
-        'pmoop',        # ?
-        'fry',          # ?
-        'radphot',      # ?
-        'pfermi',       # fermi momentum
-        'siglab',       # ?
-        'sigcm',        # ?
-        'Weight',       # Monte Carlo event weight => (cross section x acceptance)
-        'decdist',      # ?
-        'Mhadron',      # ?
-        'pdotqhat',     # ?
-        'Q2i',          # ?
-        'Wi',           # ?
-        'ti',           # ?
-        'phipqi'        # ?
-    ]
-
-    kin = {v: tree[v].array() for v in vars}
-
-    return kin
+    return {v: tree[v].array() for v in cth.vars}
 
 def calc(input):
 
@@ -107,42 +51,42 @@ def calc(input):
     A, Z = cth.getTarget(target)
 
     results = {
-            "1pi": load(f"pionCT-sim/pion_{cth.q2tags[Q2]}_{target}.root"), 
-            "2pi": load(f"pionCT-sim/pion_{cth.q2tags[Q2]}_{target}_multipi.root")
+            "1pi": load(f"pionCT-simc/pion_{cth.q2val_tags[Q2]}_{target}.root"), 
+            "2pi": load(f"pionCT-simc/pion_{cth.q2val_tags[Q2]}_{target}_multipi.root")
         }
 
     # coefficients
     weights = {
-        key: results[key]['Weight'] * cth.normfac[cth.q2tags[Q2]][key] / cth.ngen 
-        for key in results
-    }
-
-    weights_rate = {
-        key: weights[key] * cth.current 
+        key: results[key]['Weight'] * cth.specs[cth.q2val_tags[Q2]][key][target]['normfac'] / cth.ngen 
         for key in results
     }
 
     weights_lum = {
-        key: weights_rate[key] * cth.luminosity(Q2,A)[key] 
+        key: results[key]['Weight'] * cth.luminosity(Q2,target)[key] / (cth.specs[cth.q2val_tags[Q2]][key][target]['Ntried'] * cth.ngen)
         for key in results
+    }
+
+    weights_rate = {
+        '1pi': weights['1pi'] * cth.current,
+        '2pi': weights['2pi'] * cth.current * 2
     }
 
     Ehad = {key: np.sqrt(results[key]['phad']**2 + cth.m_pi**2) for key in results}
     ppi = {5.0: 5.111, 6.5: 6.715, 7.5: 7.784, 8.5: 8.430}
 
-    Ex = {key: results[key]['nu'] + 11.02 - Ehad[key] for key in results}
+    Ex = {key: results[key]['nu'] + cth.specs[cth.q2val_tags[Q2]][key][target]['mass'] - Ehad[key] for key in results}
     reconmass1 = {key: np.sqrt(Ex[key]**2 - results[key]['Pm']**2) for key in results}
     reconmass2 = {key: np.sqrt(results[key]['Em']**2 - results[key]['Pm']**2) for key in results}
     
     return results, weights, weights_rate, weights_lum, Ehad, Ex, reconmass1, reconmass2
 
 def main(input):
-    print("Alan is goated")
+    #print("Alan is goated")
     Q2, target = input
 
     A, Z = cth.getTarget(target)
 
-    resultsSIM, _, weights_rate, _, Ehad, Ex, reconmass1, reconmass2 = calc(input)
+    results, _, weights_rate, _, Ehad, Ex, reconmass1, reconmass2 = calc(input)
 
     binsize = 100
 
@@ -187,7 +131,7 @@ def main(input):
 
     # INTEGRATING HISTOGRAMS
 
-    cut_slider = np.arange(np.min(resultsSIM['1pi']['mmnuc']), np.max(resultsSIM['1pi']['mmnuc']), 1/binsize) # integration range, plus steps
+    cut_slider = np.arange(np.min(results['1pi']['mmnuc']), np.max(results['1pi']['mmnuc']), 1/binsize) # integration range, plus steps
 
     cut_results = []
     cut1pi_results = []
@@ -198,12 +142,12 @@ def main(input):
 
         h_tot = {}
 
-        for key in resultsSIM:
+        for key in results:
 
-            mask = resultsSIM[key]['mmnuc'] < cut
+            mask = results[key]['mmnuc'] < cut
 
             hist, edges = np.histogram(
-                resultsSIM[key]['mmnuc'][mask],
+                results[key]['mmnuc'][mask],
                 bins=binsize,
                 weights=weights_rate[key][mask]
             )
@@ -248,13 +192,7 @@ def main(input):
     cth.label(fr'$Q^2 = {Q2}$ $GeV/c^2$')
     cth.savefig(f'figures_{target}/Q2={Q2}', f'SIM_contamination')
 
-    # (xkey, ykey, binsize, weight)
-    plotSIM = [
-        ("mmnuc", "Pm", 100, weights_rate["1pi"]),
-        ("mmnuc", "Q2", 100, weights_rate["1pi"])
-    ]
-
-    plotSIM1 = [
+    plot1D = [
         ('epsilon', 100),
         ('Pm', 100),
         ('Em', 100),
@@ -263,13 +201,20 @@ def main(input):
         ('missmass', 100),
         ('phad', 100),
         ('nu', 100),
-        ('t', 100)
+        ('t', 100),
+        ('dpimm', 100)
     ]
 
-    for xkey, ykey, binsize, weight in plotSIM:
+    # (xkey, ykey, binsize, weight)
+    plot2D = [
+        ("mmnuc", "Pm", 100, weights_rate["1pi"]),
+        ("mmnuc", "Q2", 100, weights_rate["1pi"])
+    ]
 
-        x = np.asarray(resultsSIM['1pi'][xkey])
-        y = np.asarray(resultsSIM['1pi'][ykey])
+    for xkey, ykey, binsize, weight in plot2D:
+
+        x = np.asarray(results['1pi'][xkey])
+        y = np.asarray(results['1pi'][ykey])
         w = np.asarray(weight)
 
         plt.figure()
@@ -278,12 +223,10 @@ def main(input):
                 title=fr'Counts Graphs for $E_b=$ {Q2} GeV')
         cth.savefig(f'figures_{target}/Q2={Q2}', f'SIM_{xkey}_{ykey}')
 
-    print(f'\n CTSim finished: {time.time()-tSIM:.2f} s\n')
-
-    for var, binsize in plotSIM1:
+    for var, binsize in plot1D:
         plt.figure()
-        for key in resultsSIM:
-            cth.hist(resultsSIM[key][var], binsize, weights=weights_rate[key], mask=None, type='step')
+        for key in results:
+            cth.hist(results[key][var], binsize, weights=weights_rate[key], mask=None, type='step')
         cth.format(cth.labels[var], cth.labels['Counts_s'], colorbar=None, title=
                 fr'Graphs for 1pi + multipi background')
         cth.savefig(f'figures_{target}/Q2={Q2}', f'SIM_{var}')
@@ -296,6 +239,8 @@ def main(input):
     cth.savefig(f'figures_{target}/Q2={Q2}', f'SIM_Ex')
 
     plt.close('all')
+
+    print(f'\n CTSim finished: {time.time()-tSIM:.2f} s\n')
 
     return {'cut': cut_results, '1pi': cut1pi_results, '2pi': cut2pi_results, 'contamination': contamination_results}, 
 

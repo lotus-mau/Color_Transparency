@@ -2,3 +2,4 @@ scp "lotusmau@ftp.jlab.org:~lotusmau/simc_gfortran/worksim/pion_q_.root" .
 
 scp "lotusmau@ftp.jlab.org:~lotusmau/simc_gfortran/outfiles/pion_q_.hist" .
 
+python parse_multihadron.py /work/hallc/e1206107/spaul/pion_ct/beagle_output/12C_5.0_1/OUTFILE.txt parsed.csv 0 12C

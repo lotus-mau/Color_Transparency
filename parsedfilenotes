@@ -1,0 +1,14 @@
+import numpy as np, pandas as pd, matplotlib.pyplot as plt
+df = pd.read_csv("parsed.csv")
+plt.hist(df.query("secondary_esum==0 and accepted==3").eval("x"), bins=100)
+plt.xlabel("Bjorken x")
+plt.ylabel("events")
+plt.title("Bjorken x")
+plt.savefig("fig.pdf")
+plt.show()
+
+.eval('x/Q2') is also valid
+
+df.x	df['x']		df.eval['x'] 	are equivalent
+
+df.eval['x/Q2'] 	df.x/df.Q2	are equivalent
