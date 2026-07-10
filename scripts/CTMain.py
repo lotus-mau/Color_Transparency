@@ -13,6 +13,7 @@ import CTHelp as cth
 import CTSim as cts
 import CTKin as ctk
 import CTKinTable as ctkt
+import CTBeagle as ctb
 
 # sanity checks
 
@@ -30,17 +31,21 @@ t0 = time.time()
 
 # INPUTS
 
-q2vals = [5.0, 6.5, 7.5, 8.5]
+q2vals = [5.0]
 beam = 10.7
 t = -0.527
 A = 12; Z = 6; target = 'C'
 
-int_rates = []
+binsize = 100
+
+results = {}        # : {Q2, what was run}
 
 for Q2 in q2vals:
 
     tQ2 = time.time()
     print(f'\nAnalysis for Q2={Q2} commencing. \n')
+
+    results[Q2] = {}
 
     inputKT = [
         Q2,       
@@ -58,19 +63,37 @@ for Q2 in q2vals:
         Q2,
         target          # target: C or H
     ]
+
+    inputBEAG = [
+        Q2,
+        target          # target: C or H
+    ]
     
-    resultsKT = ctkt.main(inputKT)
-    resultsK = ctk.main(inputK)
-    resultsSIM = cts.main(inputSIM)
+    results[Q2]['KT'] = ctkt.main(inputKT)
+    results[Q2]['K'] = ctk.main(inputK)
+    results[Q2]['SIM'], results[Q2]['Cont'] = cts.main(inputSIM)
+    results[Q2]['BEAG'] = ctb.main(inputBEAG)
+
+    _, weightsSIM, _, _, _, _ = cts.calc(inputSIM)
+
+    plt.figure()
+    cth.hist(results[Q2]['SIM']['1pi']['mmnuc'], binsize, 
+                 weights=weightsSIM['1pi']*3500, mask=None, type='step')
+    cth.hist(results[Q2]['SIM']['2pi']['mmnuc'], binsize, 
+                 weights=weightsSIM['2pi']*30000, mask=None, type='step')
+    cth.hist(results[Q2]['BEAG']['miss_mass'], binsize, weights=None, mask=None, type='step') 
+    cth.format(cth.labels['mmnuc'], f'Counts', colorbar=None, title=
+               f'Comparison of SIMC and BeAGLE, Q2={Q2}')
+    cth.savefig(f'figures_{target}/Q2={Q2}', f'SIMCBEAG_mmnuc')
 
     print(f'\nAnalysis for Q2={Q2} finished: {time.time()-tQ2:.2f} s\n')
+
+
 
 # NOTE: for integrating the count rates: 
 # fit the histogram and then integrate that function
 
 # THEN: Make a table and/or plot showing the count rate vs. Q2. 
-
-
 
 _running = False
 print(f"\nMain runtime: {time.time()-t0:.2f} s\n")

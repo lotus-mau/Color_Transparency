@@ -50,35 +50,72 @@ def calc(input):
     
     A, Z = cth.getTarget(target)
 
+    specs = cth.get_specs()
+
     results = {
             "1pi": load(f"pionCT-simc/pion_{cth.q2val_tags[Q2]}_{target}.root"), 
             "2pi": load(f"pionCT-simc/pion_{cth.q2val_tags[Q2]}_{target}_multipi.root")
         }
 
     # coefficients
-    weights = {
-        key: results[key]['Weight'] * cth.specs[cth.q2val_tags[Q2]][key][target]['normfac'] / cth.ngen 
+    weights_og = {
+        key: results[key]['Weight'] * specs[cth.q2val_tags[Q2]][key][target]['normfac'] / cth.ngen 
         for key in results
     }
 
     weights_lum = {
-        key: results[key]['Weight'] * cth.luminosity(Q2,target)[key] / (cth.specs[cth.q2val_tags[Q2]][key][target]['Ntried'] * cth.ngen)
-        for key in results
+        key: results[key]['Weight'] * cth.luminosity(Q2,target)[key] / (specs[cth.q2val_tags[Q2]][key][target]['Ntried'] * cth.ngen)
+        for key in results      
     }
 
+    # print(cth.luminosity(Q2,target)['1pi'])
+    # print(specs[cth.q2val_tags[Q2]]['1pi'][target]['luminosity'])
+
     weights_rate = {
-        '1pi': weights['1pi'] * cth.current,
-        '2pi': weights['2pi'] * cth.current * 2
+        key: weights_og[key] * cth.current         
+        for key in results      # [Counts/mC] * [mC/s] -> [Counts/s]
     }
+
+    weights_sigma = {
+        key: weights_rate[key] / cth.luminosity(Q2,target)[key]
+        for key in results      # [Counts/s] / [s^-1*fb^-1] -> Counts [fb]
+    }
+
+    weights_sigma1 = {          # equivalent to above :D!
+        key: weights_og[key] / specs[cth.q2val_tags[Q2]][key][target]['luminosity']
+        for key in results      # [Counts/mC] / [mC^-1*fb^-1]
+    }
+
+    # bin_widths = {}
+    # for key in results:
+    #     counts, bins, patches = plt.hist(results[key]['Q2'], 100, weights=weights_sigma[key], 
+    #                                             histtype='step', label=cth.labels[key])
+
+    #     bin_width = (bins[-1] - bins[0]) / 100
+
+    #     bin_widths[key] = bin_width
+
+    # weights_dsigma = {
+    #     key: weights_sigma[key] / bin_widths[key]
+    #     for key in results
+    # }
+
+    if target == 'C':
+
+        weights_rate['2pi'] = weights_rate['2pi'] * 2
 
     Ehad = {key: np.sqrt(results[key]['phad']**2 + cth.m_pi**2) for key in results}
     ppi = {5.0: 5.111, 6.5: 6.715, 7.5: 7.784, 8.5: 8.430}
 
-    Ex = {key: results[key]['nu'] + cth.specs[cth.q2val_tags[Q2]][key][target]['mass'] - Ehad[key] for key in results}
-    reconmass1 = {key: np.sqrt(Ex[key]**2 - results[key]['Pm']**2) for key in results}
-    reconmass2 = {key: np.sqrt(results[key]['Em']**2 - results[key]['Pm']**2) for key in results}
+    Ex = {key: results[key]['nu'] + specs[cth.q2val_tags[Q2]][key][target]['mass'] - Ehad[key] for key in results}
+    reconmass1 = {key: np.sqrt(Ex[key]**2 - results[key]['Pm']**2) for key in results}              # equivalent to mmnuc
+    reconmass2 = {key: np.sqrt(results[key]['Em']**2 - results[key]['Pm']**2) for key in results}   # equivalent to mmnuc
+
+    weights = {'og': weights_og, 'lum': weights_lum, 'rate': weights_rate, 
+               'sigma': weights_sigma, 'sigma1': weights_sigma1#, 'dsigma': weights_dsigma
+               }
     
-    return results, weights, weights_rate, weights_lum, Ehad, Ex, reconmass1, reconmass2
+    return results, weights, Ehad, Ex, reconmass1, reconmass2
 
 def main(input):
     #print("Alan is goated")
@@ -86,7 +123,7 @@ def main(input):
 
     A, Z = cth.getTarget(target)
 
-    results, _, weights_rate, _, Ehad, Ex, reconmass1, reconmass2 = calc(input)
+    results, weights, Ehad, Ex, reconmass1, reconmass2 = calc(input)
 
     binsize = 100
 
@@ -102,7 +139,11 @@ def main(input):
 
     plt.figure() 
     for key in reconmass1:
-        cth.hist(reconmass1[key], binsize, weights_rate[key], mask=None, type='step')
+
+        cth.hist(reconmass1[key], binsize, weights['rate'][key], mask=None, type='step')
+        if target == 'H':
+            plt.yscale('log')
+        
     cth.format(cth.labels['mmnuc'], cth.labels['Counts_s'], colorbar=None, title=
             fr'Missing Mass Rates Graphs for 1pi + multipi background')
 
@@ -149,7 +190,7 @@ def main(input):
             hist, edges = np.histogram(
                 results[key]['mmnuc'][mask],
                 bins=binsize,
-                weights=weights_rate[key][mask]
+                weights=weights['rate'][key][mask]
             )
 
             h_tot[key] = np.sum(hist)
@@ -190,7 +231,7 @@ def main(input):
     #contamination_mask = (contamination_results >= 0.040) & (contamination_results <= 0.060)
     #plt.axvline(cut_results[contamination_mask], linestyle='--')
     cth.label(fr'$Q^2 = {Q2}$ $GeV/c^2$')
-    cth.savefig(f'figures_{target}/Q2={Q2}', f'SIM_contamination')
+    cth.savefig(f'figures_{target}/Q2={Q2}/SIM', f'{A}{target}_{Q2}_SIM_contamination.png')
 
     plot1D = [
         ('epsilon', 100),
@@ -202,13 +243,14 @@ def main(input):
         ('phad', 100),
         ('nu', 100),
         ('t', 100),
-        ('dpimm', 100)
+        ('dpimm', 100),
+        ('W', 100)
     ]
 
     # (xkey, ykey, binsize, weight)
     plot2D = [
-        ("mmnuc", "Pm", 100, weights_rate["1pi"]),
-        ("mmnuc", "Q2", 100, weights_rate["1pi"])
+        ("mmnuc", "Pm", 100, weights['rate']["1pi"]),
+        ("mmnuc", "Q2", 100, weights['rate']["1pi"])
     ]
 
     for xkey, ykey, binsize, weight in plot2D:
@@ -221,32 +263,90 @@ def main(input):
         cth.hist2D(x, y, binsize, weights=w, mask=None)
         cth.format(cth.labels[xkey], cth.labels[ykey], colorbar='Counts/s', 
                 title=fr'Counts Graphs for $E_b=$ {Q2} GeV')
-        cth.savefig(f'figures_{target}/Q2={Q2}', f'SIM_{xkey}_{ykey}')
+        cth.label(fr'$Q^2={Q2}$ GeV$^2$')
+        cth.savefig(f'figures_{target}/Q2={Q2}/SIM', f'{A}{target}_{Q2}_SIM_{xkey}_{ykey}.png')
 
     for var, binsize in plot1D:
         plt.figure()
         for key in results:
-            cth.hist(results[key][var], binsize, weights=weights_rate[key], mask=None, type='step')
+            cth.hist(results[key][var], binsize, weights=weights['rate'][key], mask=None, type='step')
         cth.format(cth.labels[var], cth.labels['Counts_s'], colorbar=None, title=
                 fr'Graphs for 1pi + multipi background')
-        cth.savefig(f'figures_{target}/Q2={Q2}', f'SIM_{var}')
+        cth.label(fr'$Q^2={Q2}$ GeV$^2$')
+        cth.savefig(f'figures_{target}/Q2={Q2}/SIM', f'{A}{target}_{Q2}_SIM_{var}.png')
 
     plt.figure()
     for key in Ex:
-        cth.hist(Ex[key], 100, weights_rate[key], mask=None, type='step')
+        cth.hist(Ex[key], 100, weights['rate'][key], mask=None, type='step')
     cth.format(cth.labels['Em'], cth.labels['Counts_s'], colorbar=None, title=
                fr'Graphs for 1pi + multipi background')
-    cth.savefig(f'figures_{target}/Q2={Q2}', f'SIM_Ex')
+    cth.label(fr'$Q^2={Q2}$ GeV$^2$')
+    cth.savefig(f'figures_{target}/Q2={Q2}/SIM', f'{A}{target}_{Q2}_SIM_Ex.png')
 
     plt.close('all')
 
     print(f'\n CTSim finished: {time.time()-tSIM:.2f} s\n')
 
-    return {'cut': cut_results, '1pi': cut1pi_results, '2pi': cut2pi_results, 'contamination': contamination_results}, 
+    return results, {'cut': cut_results, '1pi': cut1pi_results, '2pi': cut2pi_results, 'contamination': contamination_results}
+
+def test(target):
+
+    A, _ = cth.getTarget(target)
+
+    q2vals = [5.0, 6.5, 7.5, 8.5]
+
+    keys = ['1pi', '2pi']
+
+    plt.figure()
+
+    sigmas = {key: {} for key in keys}
+    sigma_errs = {key: {} for key in keys}
+    Q2_aves = {key: {} for key in keys}
+    Q2_errs = {key: {} for key in keys}
+
+    for q2val in q2vals:
+
+        input = [q2val, 'C']
+
+        results, weights, _, _, _, _ = calc(input)
+
+        for key in results:
+            
+            hist_sigma, _ = np.histogram(results[key]['Q2'], 100, weights=weights['sigma'][key])
+
+            hist_err2, _ = np.histogram(results[key]['Q2'], 100, weights=weights['sigma'][key]**2)
+            hist_err = np.sqrt(hist_err2)
+
+            sigma = np.sum(hist_sigma) ; sigmas[key][q2val] = sigma
+            sigma_err = np.sqrt(np.sum(hist_err**2)) ; sigma_errs[key][q2val] = sigma_err
+
+            Q2_ave = np.average(results[key]['Q2'], weights=weights['sigma'][key])
+            Q2_aves[key][q2val] = Q2_ave
+            Q2_err = np.sqrt(np.average((results[key]['Q2'] - Q2_ave)**2, weights=weights['sigma'][key]))
+            Q2_errs[key][q2val] = Q2_err
+
+    sigmas = {key: [sigmas[key][q2val] for q2val in q2vals] for key in keys}
+    sigma_errs = {key: [sigma_errs[key][q2val] for q2val in q2vals] for key in keys}
+    Q2_aves = {key: [Q2_aves[key][q2val] for q2val in q2vals] for key in keys}
+    Q2_errs = {key: [Q2_errs[key][q2val] for q2val in q2vals] for key in keys}
+
+    for key in keys:
+        plt.errorbar(Q2_aves[key], sigmas[key], xerr=Q2_errs[key], yerr=sigma_errs[key], 
+                    fmt='o', label=cth.labels[key])
+    
+    cth.format(cth.labels['Q2'], cth.labels['sigma'],colorbar=None,
+               title=f'Total Cross Section per setting, for 1pi + multipi')
+    plt.legend()
+    cth.savefig(f'figures_{target}', f'{A}{target}_totalsigmas.png')
+
+
 
 if __name__ == "__main__":
 
-    input = [5.0, 'C']
+    target = 'C'
+    Q2 = 5.0
+
+    input = [Q2, target]
     empty = False
 
     if len(sys.argv) < 3:
@@ -260,3 +360,5 @@ if __name__ == "__main__":
         input = [Q2, target]
 
     main(input)
+
+    test(target)

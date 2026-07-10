@@ -26,9 +26,11 @@ def load(file_csv):
 
     x                   # Bjorken X
     Q2                  # Momentum Transfer
+    W                   # invariant mass
     miss_mass           # Missing Mass
     phih                # Azimuthal angle of Hadron
     pt2                 # transverse momentum squared
+    t                   # hadronic momentum transfer
     secondary_pips      # Secondary Pi+
     secondary_pims      # Secondary Pi-
     secondary_pizs      # Secondary Pi0
@@ -57,15 +59,24 @@ def calc(input):
 
 def main(input):
 
+    tBEAG = time.time()
+
     Q2, target = input
 
     results = calc(input)
 
-    plt.figure()
-    cth.hist(results['miss_mass'], bins=100, weights=None, mask=None, type='step')
-    cth.format(cth.labels['missmass'], f'Counts', colorbar=None,
+    for key in results:
+        plt.figure()
+        cth.hist(results[key], bins=100, weights=None, mask=None, type='step')
+        cth.format(f'{key}', f'Counts', colorbar=None,
                title=f'Beagle Plots for 1pi, Q2 = {Q2}')
-    cth.savefig(f'figures_{target}/Q2={Q2}', f'BEAG_missmass')
+        cth.savefig(f'figures_{target}/Q2={Q2}/BeAGLE', f'BEAG_{key}.png')
+
+    plt.close('all')
+
+    print(f'\nBeagle Analysis Done: {time.time() - tBEAG:.2f} s\n')
+    
+    return results
 
 if __name__ == "__main__":
 
@@ -83,3 +94,5 @@ if __name__ == "__main__":
         input = [Q2, target]
 
     main(input)
+
+    # code graphing the fitted polynomials

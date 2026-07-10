@@ -63,7 +63,8 @@ def parse_hist(q2tag, key, target):
                  'normfac',         # normalization factor calculated using luminosity/ntried*ngen
                  'length',          # length of target
                  'rho',             # density of target
-                 'mass'             # target mass in GeV
+                 'mass',            # target mass in GeV
+                 'luminosity'       # luminosity in fb^-1 (femtobarns)
                  ]
     
     parsed = {variable: get_value(variable) for variable in variables}
@@ -74,14 +75,24 @@ def parse_hist(q2tag, key, target):
     )
 
     if match1:
-        parsed['mass'] = float(match1.group(1)) / 1000.0            # MeV to GeV : /1000.
-    
+        parsed['mass'] = float(match1.group(1)) / 10e3            # MeV to GeV : /1000.
+
+    match2 = re.search(
+        r"luminosity\s*=\s*([-+]?\d*\.?\d+(?:[Ee][-+]?\d+)?)\s*ub\^-1",
+        text
+    )
+
+    if match2:
+        parsed['luminosity'] = float(match2.group(1)) * 10e-9     # ub^-1 to fb^-1 : *10^-9
+    # above is in mC / fb : for some reason charge is here. -> normalize on weight_og
     return parsed
 
-specs = {tag: {key: {target: parse_hist(tag, key, target)
-                     for target in targets}
-               for key in settings}
-         for tag in q2tags}
+def get_specs():
+
+    return {tag: {key: {target: parse_hist(tag, key, target)
+                        for target in targets}
+                  for key in settings}
+            for tag in q2tags}
 
 ## HELPERS
 
@@ -93,7 +104,7 @@ def format(xlabel, ylabel, colorbar, title):
         plt.colorbar(label=colorbar)
 
 def hist(x, bins, weights, mask, type):
-    
+
     if mask is not None:
         
         x = x[mask]; 
@@ -145,12 +156,26 @@ def contour(x, y, z, mask):
     
     plt.contourf(X, Y, z_grid, levels=50)
 
+def poly(min, max, p0, p1, p2, p3, p4, p5, p6, scale):
+
+    x = np.arange(min, max, (max-min)/10e3)
+
+    y = (  p0 
+         + p1*x
+         + p2*x**2
+         + p3*x**3
+         + p4*x**4
+         + p5*x**5
+         + p6*x**6)
+
+    plt.plot(x, scale*y)
+
 def label(label):
-    plt.text(0.98, 0.98, label,
+    plt.text(1.0, 1.0, label,
              transform=plt.gca().transAxes,
              va='top', ha='right',
              bbox=dict(facecolor='white',
-                       alpha=0.8,edgecolor='black'))
+                       alpha=1.0,edgecolor='black'))
     
 def savefig(folder, name):
 
@@ -181,17 +206,18 @@ def getTarget(target):
 def calclum(current, density, length, A):
 
     lum_B = current / q_e                     # number of electrons per second
+    # N_e/s = mC/s / mC
     lum_T = density * length / A * N_A        # number of particles (nucleon per nucleus) in unit area
-
-    return lum_B * lum_T
+    # N_n/cm^2 = g/cm^3 * cm * mol/g * 1/mol
+    return lum_B * lum_T * 10e-39            # [s^-1 cm^-2] -> 10^-39 cm^-2 = fb^-1     
 
 def luminosity(q2, target):
 
     A, _ = getTarget(target)
 
-    return {key: calclum(current, 
-                         specs[q2val_tags[q2]][key][target]['rho'], 
-                         specs[q2val_tags[q2]][key][target]['length'], 
+    return {key: calclum(current,
+                         get_specs()[q2val_tags[q2]][key][target]['rho'], 
+                         get_specs()[q2val_tags[q2]][key][target]['length'], 
                          A) 
             for key in settings}
 
@@ -256,34 +282,41 @@ vars = [
     ]
 
 labels = {
-    "q":        r"$|\vec{q}|\ \mathrm{(GeV/c)}$",
-    "nu":       r"$\nu\ \mathrm{(GeV/c)}$",
-    "Q2":       r"$Q^2\ \mathrm{(GeV/c)^2}$",
-    "W":        r"$W\ \mathrm{(GeV)}$",
+    "q":        r"$|\vec{q}|\ \mathrm{[GeV/c]}$",
+    "nu":       r"$\nu\ \mathrm{[GeV/c]}$",
+    "Q2":       r"$Q^2\ \mathrm{[GeV/c]^2}$",
+    "W":        r"$W\ \mathrm{[GeV]}$",
     "xb":       r"$x_b$",
     "epsilon":  r"$\epsilon$",
-    "Eprime":   r"$E'\ \mathrm{(GeV)}$",
-    "theta_e":  r"$\theta_{\mathrm{e}}\ \mathrm{(\deg)}$",
-    "Em":       r"$E_m\ \mathrm{(GeV)}$",
-    "Pm":       r"$P_m\ \mathrm{(GeV/c)}$",
-    "k_pi":     r"$k_\pi\ \mathrm{(GeV/c)}$",
-    "p_pi":     r"$p_\pi\ \mathrm{(GeV/c)}$",
-    "theta_pi": r"$\theta_\pi\ \mathrm{(\deg)}$",
-    "thetapq":  r"$\theta_{pq}\ \mathrm{(rad)}$",
-    "phipq":    r"$\phi_{pq}\ \mathrm{(rad)}$",
-    "Mm":       r"$M_{\mathrm{m}}\ \mathrm{(GeV)}$",
-    "MMa":      r"$M_{\mathrm{m}}^{\mathrm{A}}\ \mathrm{(GeV)}$",
-    "mmnuc":    r"$M_{\mathrm{m}}^{\mathrm{nuc}}\ \mathrm{(GeV)}$",
-    "dpimm":    r"$M_{\mathrm{m}}^{\mathrm{nuc}}\ \mathrm{(GeV)}$",
-    "missmass": r"$M_{\mathrm{m}}\ \mathrm{(GeV)}$",
-    "Mhadron":  r"$M_{\mathrm{had}}\ \mathrm{(GeV)}$",
-    "phad":     r"$p_{\mathrm{had}}\ \mathrm{(GeV/c)}$",
-    "t":        r"$t\ \mathrm{(GeV^2)}$",
-    "pmpar":    r"$p_{m}^{\parallel}\ \mathrm{(GeV/c)}$",
-    "pmper":    r"$p_{m}^{\perp}\ \mathrm{(GeV/c)}$",
-    "pmoop":    r"$p_{m,\mathrm{oop}}\ \mathrm{(GeV/c)}$",
+    "Eprime":   r"$E'\ \mathrm{[GeV]}$",
+    "theta_e":  r"$\theta_{\mathrm{e}}\ \mathrm{[\deg]}$",
+    "Em":       r"$E_m\ \mathrm{[GeV]}$",
+    "Pm":       r"$P_m\ \mathrm{[GeV/c]}$",
+    "k_pi":     r"$k_\pi\ \mathrm{[GeV/c]}$",
+    "p_pi":     r"$p_\pi\ \mathrm{[GeV/c]}$",
+    "theta_pi": r"$\theta_\pi\ \mathrm{[\deg]}$",
+    "thetapq":  r"$\theta_{pq}\ \mathrm{[rad]}$",
+    "phipq":    r"$\phi_{pq}\ \mathrm{[rad]}$",
+    "Mm":       r"$M_{\mathrm{m}}\ \mathrm{[GeV]}$",
+    "MMa":      r"$M_{\mathrm{m}}^{\mathrm{A}}\ \mathrm{[GeV]}$",
+    "mmnuc":    r"$M_{\mathrm{m}}^{\mathrm{nuc}}\ \mathrm{[GeV]}$",
+    "dpimm":    r"$M_{\mathrm{m}}^{\mathrm{nuc}}\ \mathrm{[GeV]}$",
+    "missmass": r"$M_{\mathrm{m}}\ \mathrm{[GeV]}$",
+    "Mhadron":  r"$M_{\mathrm{had}}\ \mathrm{[GeV]}$",
+    "phad":     r"$p_{\mathrm{had}}\ \mathrm{[GeV/c]}$",
+    "t":        r"$t\ \mathrm{[GeV^2]}$",
+    "pmpar":    r"$p_{m}^{\parallel}\ \mathrm{[GeV/c]}$",
+    "pmper":    r"$p_{m}^{\perp}\ \mathrm{[GeV/c]}$",
+    "pmoop":    r"$p_{m,\mathrm{oop}}\ \mathrm{[GeV/c]}$",
     "radphot":  r"",
-    "pfermi":   r"$p_{\mathrm{f}}\ \mathrm{(GeV/c)}$",
-    "Counts_mC": r"$Counts/mC$",
-    "Counts_s":  r"$Counts/s$"
+    "pfermi":   r"$p_{\mathrm{f}}\ \mathrm{[GeV/c]}$",
+    "Counts_mC": r"Counts/mC",
+    "Counts_s":  r"Counts/s",
+    "sigma":    r"$\sigma\ \mathrm{[fb]}$",
+    "dQ2":      r"$d\sigma/dQ^2\ \mathrm{[fb/GeV^2]}$",
+    "dt":       r"$d\sigma/dt\ \mathrm{[fb/GeV^2]}$",
+    "dW":       r"$d\sigma/dW\ \mathrm{[fb/GeV^2]}$",
+    "dMM":      r"$d\sigma/dM_{m}^{nuc}\ \mathrm{[fb/GeV^2]}$",
+    "1pi":      r"$\pi^+\ $",
+    "2pi":      r"$n\pi$"
 }

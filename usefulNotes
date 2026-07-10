@@ -1,5 +1,19 @@
-scp "lotusmau@ftp.jlab.org:~lotusmau/simc_gfortran/worksim/pion_q_.root" .
+scp "lotusmau@ftp.jlab.org:~lotusmau/simc_gfortran/worksim/*" .
 
-scp "lotusmau@ftp.jlab.org:~lotusmau/simc_gfortran/outfiles/pion_q_.hist" .
+scp "lotusmau@ftp.jlab.org:~lotusmau/simc_gfortran/outfiles/*" .
 
 python parse_multihadron.py /work/hallc/e1206107/spaul/pion_ct/beagle_output/12C_5.0_1/OUTFILE.txt parsed.csv 0 12C
+
+scp "lotusmau@ftp.jlab.org:~lotusmau/pion_ct/beagle/output/*" .
+
+NOTE: Luminosity calculation inside of simc.f 
+
+    targetfac=targ%mass_amu/3.75914d+6/(targ%abundancy/100.)
+ >          *abs(cos(targ%angle))/(targ%thick*1000.)
+
+    ! ... Note: EXPER.charge is in mC and the luminosity comes out in fm^-2         
+    ! ...       now luminosity is in ub^-1 
+
+    luminosity = EXPER%charge/targetfac         ----> ub^-1
+
+    luminosity*(hbarc/100000.)**2, 'GeV^2'      ----> GeV^2 
