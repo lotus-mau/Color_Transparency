@@ -78,13 +78,13 @@ for Q2 in q2vals:
 
     plt.figure()
     cth.hist(results[Q2]['SIM']['1pi']['mmnuc'], binsize, 
-                 weights=weightsSIM['1pi']*3500, mask=None, type='step')
+                 weights=weightsSIM['rates']['1pi']*3500, mask=None, type='step')
     cth.hist(results[Q2]['SIM']['2pi']['mmnuc'], binsize, 
-                 weights=weightsSIM['2pi']*30000, mask=None, type='step')
+                 weights=weightsSIM['rates']['2pi']*30000, mask=None, type='step')
     cth.hist(results[Q2]['BEAG']['miss_mass'], binsize, weights=None, mask=None, type='step') 
     cth.format(cth.labels['mmnuc'], f'Counts', colorbar=None, title=
                f'Comparison of SIMC and BeAGLE, Q2={Q2}')
-    cth.savefig(f'figures_{target}/Q2={Q2}', f'SIMCBEAG_mmnuc')
+    cth.savefig(f'figures_{target}/Q2={Q2}', f'SIMCBEAG_mmnuc.png')
 
     print(f'\nAnalysis for Q2={Q2} finished: {time.time()-tQ2:.2f} s\n')
 
@@ -93,7 +93,7 @@ for Q2 in q2vals:
 # NOTE: for integrating the count rates: 
 # fit the histogram and then integrate that function
 
-# THEN: Make a table and/or plot showing the count rate vs. Q2. 
+# THEN: Make a table and/or plot showing the count rate vs. Q2. -> Done
 
 _running = False
 print(f"\nMain runtime: {time.time()-t0:.2f} s\n")

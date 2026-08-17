@@ -23,8 +23,9 @@ m_pi = 0.139570611      # charged pion mass
 
 q2tags = ['q5', 'q6p5', 'q7p5', 'q8p5']
 q2val_tags = {5.0: q2tags[0], 6.5: q2tags[1], 7.5: q2tags[2], 8.5: q2tags[3]}
+q2vals = [5.0, 6.5, 7.5, 8.5]
 
-settings = ['1pi', '2pi']
+keys = ['1pi', '2pi']
 
 targets = ['C', 'H']
 
@@ -91,7 +92,7 @@ def get_specs():
 
     return {tag: {key: {target: parse_hist(tag, key, target)
                         for target in targets}
-                  for key in settings}
+                  for key in keys}
             for tag in q2tags}
 
 ## HELPERS
@@ -156,19 +157,21 @@ def contour(x, y, z, mask):
     
     plt.contourf(X, Y, z_grid, levels=50)
 
-def poly(min, max, p0, p1, p2, p3, p4, p5, p6, scale):
+def poly(min, max, p0, p1, p2, p3, p4, p5, p6):
 
-    x = np.arange(min, max, (max-min)/10e3)
+    x = np.linspace(min, max, 1000)
 
-    y = (  p0 
-         + p1*x
-         + p2*x**2
-         + p3*x**3
-         + p4*x**4
-         + p5*x**5
-         + p6*x**6)
+    y = lambda v: p6 + p5*(v) + p4*(v**2) + p3*(v**3) + p2*(v**4) + p1*(v**5) + p0*(v**6)
 
-    plt.plot(x, scale*y)
+    return x, y
+
+def get_binwidth(hist, bins, weights):
+
+    counts, edges = np.histogram(hist, bins=bins, weights=weights)
+    
+    bin_width = np.diff(edges)[0]
+
+    return bin_width
 
 def label(label):
     plt.text(1.0, 1.0, label,
@@ -203,23 +206,23 @@ def getTarget(target):
 
 # DEFINITIONS
 
-def calclum(current, density, length, A):
-
-    lum_B = current / q_e                     # number of electrons per second
-    # N_e/s = mC/s / mC
-    lum_T = density * length / A * N_A        # number of particles (nucleon per nucleus) in unit area
-    # N_n/cm^2 = g/cm^3 * cm * mol/g * 1/mol
-    return lum_B * lum_T * 10e-39            # [s^-1 cm^-2] -> 10^-39 cm^-2 = fb^-1     
-
 def luminosity(q2, target):
 
     A, _ = getTarget(target)
+
+    def calclum(current, density, length, A):
+
+        lum_B = current / q_e                     # number of electrons per second
+        # N_e/s = mC/s / mC
+        lum_T = density * length / A * N_A        # number of particles (nucleon per nucleus) in unit area
+        # N_n/cm^2 = g/cm^3 * cm * mol/g * 1/mol
+        return lum_B * lum_T * 10e-39            # [s^-1 cm^-2] -> 10^-39 cm^-2 = fb^-1     
 
     return {key: calclum(current,
                          get_specs()[q2val_tags[q2]][key][target]['rho'], 
                          get_specs()[q2val_tags[q2]][key][target]['length'], 
                          A) 
-            for key in settings}
+            for key in keys}
 
 ## USEFUL VARIABLES
 
@@ -310,13 +313,29 @@ labels = {
     "pmoop":    r"$p_{m,\mathrm{oop}}\ \mathrm{[GeV/c]}$",
     "radphot":  r"",
     "pfermi":   r"$p_{\mathrm{f}}\ \mathrm{[GeV/c]}$",
-    "Counts_mC": r"Counts/mC",
-    "Counts_s":  r"Counts/s",
+    "Counts_mC":r"Counts/mC",
+    "Counts_s": r"Counts/s",
+    "sigma_i":  r"$\sigma_i\ \mathrm{[fb]}$",
     "sigma":    r"$\sigma\ \mathrm{[fb]}$",
     "dQ2":      r"$d\sigma/dQ^2\ \mathrm{[fb/GeV^2]}$",
     "dt":       r"$d\sigma/dt\ \mathrm{[fb/GeV^2]}$",
     "dW":       r"$d\sigma/dW\ \mathrm{[fb/GeV^2]}$",
     "dMM":      r"$d\sigma/dM_{m}^{nuc}\ \mathrm{[fb/GeV^2]}$",
     "1pi":      r"$\pi^+\ $",
-    "2pi":      r"$n\pi$"
+    "2pi":      r"$\pi^{multi}\ $", 
+    "1piB":     r"$\pi^+_B\ $",
+    "2piB":     r"$\pi^{multi}_B\ $",
+    "ct":       r"$T\ $"
+}
+
+colors = {
+    '1pi':      "#4A298A",
+    '2pi':      "#8F68DB",
+    '1piB':     "#962F2F",
+    '2piB':     "#DC8585",
+}
+
+histtypes = {
+    '1pi':      'step',
+    '2pi':      'stepfilled'
 }
